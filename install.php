@@ -65,23 +65,31 @@ try {
     err("Connexion échouée: ".$e->getMessage()); exit(1);
 }
 
-// Normaliser collation (générique selon version MySQL)
-function pickCollation(PDO $pdo): string {
-    $prefs = ['utf8mb4_0900_ai_ci','utf8mb4_unicode_ci','utf8mb4_general_ci'];
+// Normaliser la collation de session pour éviter les mixes (use DB default)
+function pickCollation(PDO $pdo, string $db): string {
+    // 1) Collation par défaut de la base si disponible
+    $stmt = $pdo->prepare("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?");
+    if ($stmt->execute([$db])) {
+        $c = $stmt->fetchColumn();
+        if (is_string($c) && $c !== '') return $c;
+    }
+    // 2) Collation serveur
+    $row = $pdo->query("SHOW VARIABLES LIKE 'collation_server'")->fetch(PDO::FETCH_ASSOC);
+    if (!empty($row['Value'])) return (string)$row['Value'];
+    // 3) Fallback raisonnable
+    $prefs = ['utf8mb4_unicode_ci','utf8mb4_general_ci'];
     foreach($prefs as $c){
         $stmt = $pdo->prepare("SHOW COLLATION LIKE ?");
         $stmt->execute([$c]);
         if ($stmt->fetch()) return $c;
     }
-    // Fallback sur la collation serveur
-    $row = $pdo->query("SHOW VARIABLES LIKE 'collation_server'")->fetch(PDO::FETCH_ASSOC);
-    return $row['Value'] ?? 'utf8mb4_general_ci';
+    return 'utf8mb4_general_ci';
 }
-$collation = pickCollation($pdo);
+$collation = pickCollation($pdo, $bdd);
 
-// Appliquer SET NAMES avec collation choisie et tenter d'unifier la base
+// Appliquer SET NAMES + collation de session pour aligner les comparaisons
 try { $pdo->exec("SET NAMES utf8mb4 COLLATE $collation"); } catch (Throwable $e) {}
-try { $pdo->exec("ALTER DATABASE `".$bdd."` CHARACTER SET utf8mb4 COLLATE $collation"); } catch (Throwable $e) {}
+try { $pdo->exec("SET SESSION collation_connection = '$collation'"); } catch (Throwable $e) {}
 
 // Vidage base
 println("⚠️ Cette étape supprime toutes les tables de '$bdd'.");
