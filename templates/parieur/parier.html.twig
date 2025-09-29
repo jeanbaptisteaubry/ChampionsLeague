@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Placer des paris — Phase #{{ idPhase }}</h1>
+  <p>
+    <a href="/parieur/campagnes/{{ idCampagne }}">← Retour à la campagne</a>
+    — <a href="/parieur/phases/{{ idPhase }}/resultats">Voir résultats des paris</a>
+  </p>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  {% if closed %}
+    <p class="flash-err">Phase clôturée: les paris ne sont plus acceptés.</p>
+  {% endif %}
+  {% if items|length == 0 %}
+    <p>Pas d'élément à parier</p>
+  {% else %}
+    <form method="post" action="/parieur/phases/{{ idPhase }}/parier">
+      <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+        <thead>
+          <tr>
+            <th>À parier</th>
+            {% for i in 1..nb %}
+              <th>{{ labels[i] ?? ('Valeur ' ~ i) }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+            <tr>
+              <td>#{{ it.idAParier }} — {{ it.libellePari }}</td>
+              {% for i in 1..nb %}
+                {% set label = (labels[i] ?? ('Valeur ' ~ i)) %}
+                {% set val = (existing[it.idAParier][i] ?? '') %}
+                <td><input name="paris[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}" {% if closed %}disabled{% endif %}></td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:.5rem">
+        <button {% if closed %}disabled{% endif %}>Enregistrer</button>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Résultats des paris — {{ campagne.libelle }} — {{ phase.libelle }}</h1>
+  <p>
+    <a href="/parieur/campagnes/{{ campagne.idCampagnePari }}">← Retour à la campagne</a>
+    — <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/parier">Aller parier</a>
+    — <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/resultats.csv">Exporter CSV</a>
+  </p>
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+    <thead>
+      <tr>
+        <th>À parier</th>
+        <th>Résultat officiel</th>
+        {% for u in participants %}
+          <th>{{ u.pseudo }}</th>
+        {% endfor %}
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for it in items %}
+      <tr>
+        <td>{{ it.libellePari }}</td>
+        {% set o = official[it.idAParier] ?? {} %}
+        {% set hasOff = (o[1] is defined or o[2] is defined) %}
+        <td style="color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} — {% endif %}{{ o[2]|default('') }}</td>
+        {% for u in participants %}
+          {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
+          {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}
+          {% set style = '' %}
+          {% if bet %}
+            {% if not hasOff %}
+              {% set style = 'background:#f6f6f6;color:#999' %}
+            {% elseif pts > 0 %}
+              {% set style = 'background:#e6ffe6' %}
+            {% else %}
+              {% set style = 'background:#ffecec' %}
+            {% endif %}
+          {% endif %}
+          <td style="{{ style }}">{{ bet }}{% if bet %} — <strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
+        {% endfor %}
+        <td></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="{{ 3 + participants|length }}">Aucun élément à parier</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="2">Total points</th>
+        {% for u in participants %}
+          <th>{{ totals[u.idUtilisateur]|default(0) }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </tfoot>
+  </table>
+{% endblock %}

@@ -1,0 +1,27 @@
+1 : Création d'un fichier SQL
+
+Structure de la base de données 
+On va avoir 2 tables : une de type d'utilisateur (2 types : parieur / administrateur).
+TypeUtilisateur(idTypeUtilisateur, libelle, description)
+Utilisateur(idUtilisateur, pseudo, motDePasseHasch, mail)
+
+Les tables et les données seront créées dans /sql/script.sql
+Les fonctions de manipulation de ces tables seront dans /src/Modele
+Chaque table aura sa classe du modèle, nous aurons les fonctions de CRUD habituelle pour TypeUtilisateur (avec sélection par idTypeUtilisateur)
+Même chose pour Utilisateur mais en intégrant les problématique de hash. Un utilisateur pourra être sélectionné par mail et par id
+
+
+Suite de la roadmap :
+CampagnePari(idCampagnePari, libelle, description)
+TypePhase(idTypePhase, libelle, nbValeurParPari)
+LibelleValeurPhase(idTypePhase, numeroValeur, libelle)
+PhaseCampagne(idPhaseCampagne, idCampagnePari,  idTypePhase, ordre, libelle, dateheureLimite) 
+    Clé primaire : idPhaseCampagne
+AParier(idAParier, idPhaseCampagne, libellePari)
+ReponsePAri(idAparier, numeroValeur, valeurResultat)
+InscriptionPari(idParieur, idCampagnePari)
+Pari(idPari, IdParieur, idAParier, valeur1)
+
+Une campagne de pari est composée de phase. 
+Une phase est d'un type, pour un type de pari il y a un nombre de valeurs à parier. Chaque valeur a un libellé
+Un parieur est inscrit à une campagne et pour chaque phase il doit faire des paris avant l'horaire indiqué. Il pari donc pour une à n valeur en fonction de type de phase.

@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Créer un utilisateur parieur</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/admin/users">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label for="pseudo">Pseudo</label>
+    <input type="text" id="pseudo" name="pseudo" required>
+
+    <label for="mail">Email</label>
+    <input type="email" id="mail" name="mail" required>
+    <p>Un email contenant un lien d'activation sera envoyé pour permettre au parieur de définir son mot de passe.</p>
+    <button type="submit">Créer</button>
+  </form>
+{% endblock %}

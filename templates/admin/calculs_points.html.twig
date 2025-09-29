@@ -1,0 +1,36 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Calcul des points — {{ campagne.libelle }} — {{ phase.libelle }} (Phase #{{ phase.idPhaseCampagne }})</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+
+  <h2>Calculs en place</h2>
+  <ul>
+    {% for c in current %}
+      <li>#{{ c.idPhaseCalculPoint }} — {{ c.libelle }} — {{ c.nbPoint }} pt(s)
+        <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/calculs/{{ c.idPhaseCalculPoint }}/delete" style="display:inline" onsubmit="return confirm('Supprimer ce calcul ?');">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <button>Supprimer</button>
+        </form>
+      </li>
+    {% else %}
+      <li>Aucun calcul configuré</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Ajouter / Mettre à jour</h2>
+  <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/calculs">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label>Type de résultat
+      <select name="idTypeResultat" required>
+        {% for t in available %}
+          <option value="{{ t.idTypeResultat }}">{{ t.libelle }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Points <input type="number" name="nbPoint" value="1" min="1" required></label>
+    <button>Ajouter</button>
+  </form>
+
+{% endblock %}
+

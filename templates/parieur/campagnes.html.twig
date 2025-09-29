@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Mes campagnes</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+
+  <h2>Inscrit</h2>
+  <ul>
+    {% for c in enrolled %}
+      <li>
+        {{ c.libelle }} <a href="/parieur/campagnes/{{ c.idCampagnePari }}" style="margin-left:.5rem">Voir</a>{% if c.gain is defined and c.gain is not null %}
+          — Gain:
+          <div style="white-space:pre-line">{{ c.gain|nl2br }}</div>
+        {% endif %}
+        <form method="post" action="/parieur/campagnes/{{ c.idCampagnePari }}/desinscrire" style="display:inline" onsubmit="return confirm('Se désinscrire de cette campagne ?');">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <button>Désinscrire</button>
+        </form>
+      </li>
+    {% else %}
+      <li>Aucune</li>
+    {% endfor %}
+  </ul>
+
+  <h2>S'inscrire à une campagne</h2>
+  {% if available|length == 0 %}
+    <p>Aucune campagne disponible.</p>
+  {% else %}
+    <form method="post" action="/parieur/campagnes">
+      <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+      <select name="idCampagnePari">
+        {% for c in available %}<option value="{{ c.idCampagnePari }}">{{ c.libelle }}{% if c.gain is defined and c.gain is not null %} — Gain: {{ c.gain|replace({'\n':' '}) }}{% endif %}</option>{% endfor %}
+      </select>
+      <button>S'inscrire</button>
+    </form>
+  {% endif %}
+{% endblock %}

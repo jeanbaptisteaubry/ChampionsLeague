@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title|default('App') }}</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 1rem auto; max-width: 900px; }
+      nav a { margin-right: .75rem; }
+      .flash-ok { color: #0a0; }
+      .flash-err { color: #a00; }
+      form label { display:block; margin-top:.5rem }
+      input, button { padding:.4rem .6rem; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/">Accueil</a>
+      {% if app.user is defined and app.user %}
+        {% if app.user.typeLibelle == 'administrateur' %}
+          <a href="/admin/users">Utilisateurs</a>
+          <a href="/admin/campagnes">Campagnes</a>
+          <a href="/admin/types">Types de phase</a>
+        {% else %}
+          <a href="/parieur">Espace parieur</a>
+          <a href="/parieur/password">Changer le mot de passe</a>
+          <a href="/parieur/campagnes">Campagnes</a>
+        {% endif %}
+        <a href="/logout">Déconnexion ({{ app.user.pseudo }})</a>
+      {% else %}
+        <a href="/login">Connexion</a>
+      {% endif %}
+    </nav>
+    <hr/>
+    {% block body %}{% endblock %}
+  </body>
+</html>

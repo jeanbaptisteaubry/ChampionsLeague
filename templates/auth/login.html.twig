@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Connexion</h1>
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label for="mail">Email</label>
+    <input type="email" id="mail" name="mail" required>
+
+    <label for="password">Mot de passe</label>
+    <input type="password" id="password" name="password" required>
+
+    <button type="submit">Se connecter</button>
+  </form>
+  <p><a href="/account/reset">Mot de passe oublié ?</a></p>
+{% endblock %}

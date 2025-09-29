@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Campagne: {{ campagne.libelle }}</h1>
+  {% if campagne.gain %}
+    <p><strong>Gain:</strong></p>
+    <div style="white-space:pre-line">{{ campagne.gain|nl2br }}</div>
+  {% endif %}
+
+  <h2>Phases (journées)</h2>
+  <ul>
+    {% for p in phases %}
+      <li>
+        #{{ p.idPhaseCampagne }} — {{ p.ordre }} — {{ p.libelle }} — {{ p.typeLibelle }} — Limite: {{ p.dateheureLimite }} —
+        {% set closed = (p.dateheureLimite|date('U')) < ('now'|date('U')) %}
+        {% if closed %}
+          <em>Clôturé</em>
+        {% else %}
+          <a href="/parieur/phases/{{ p.idPhaseCampagne }}/parier">Parier</a>
+        {% endif %}
+        — <a href="/parieur/phases/{{ p.idPhaseCampagne }}/resultats">Résultats</a>
+      </li>
+    {% else %}
+      <li>Aucune phase</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Participants</h2>
+  <ul>
+    {% for u in participants %}
+      <li>{{ u.pseudo }}</li>
+    {% else %}
+      <li>Aucun participant</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

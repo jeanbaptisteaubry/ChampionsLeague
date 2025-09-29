@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Types de phase</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/admin/types">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label>Libellé <input name="libelle" required></label>
+    <label>Nb valeurs/pari <input type="number" min="1" max="10" name="nbValeurParPari" value="1" required></label>
+    <label>Libellés (séparés par des virgules) <input name="labels" placeholder="ex: Buts domicile, Buts extérieur"></label>
+    <button>Créer</button>
+  </form>
+  <h2>Liste</h2>
+  <ul>
+    {% for t in types %}
+      {% set used = (usage[t.idTypePhase] ?? 0) %}
+      <li>#{{ t.idTypePhase }} — {{ t.libelle }} ({{ t.nbValeurParPari }} valeurs)
+        {% if used == 0 %}
+          <form method="post" action="/admin/types/{{ t.idTypePhase }}/delete" style="display:inline" onsubmit="return confirm('Supprimer ce type ?');">
+            <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+            <button>Supprimer</button>
+          </form>
+        {% else %}
+          <em style="color:#888">(utilisé {{ used }}×)</em>
+        {% endif %}
+      </li>
+    {% else %}
+      <li>Pas de type</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

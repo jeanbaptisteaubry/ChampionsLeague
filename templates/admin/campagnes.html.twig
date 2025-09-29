@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Campagnes</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/admin/campagnes">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label>Libellé <input name="libelle" required></label>
+    <label>Description <input name="description"></label>
+    <button>Créer</button>
+  </form>
+  <h2>Liste</h2>
+  <ul>
+    {% for c in campagnes %}
+      <li>
+        #{{ c.idCampagnePari }} — {{ c.libelle }}
+        {% if c.gain is not null %}
+          — Gain:
+          <div style="white-space:pre-line; margin:.25rem 0 .25rem 0;">{{ c.gain|nl2br }}</div>
+        {% else %}
+          — Gain: <em>non défini</em>
+        {% endif %}
+        — <a href="/admin/campagnes/{{ c.idCampagnePari }}/phases">Gérer phases</a>
+        {% set count = (inscCounts[c.idCampagnePari] ?? 0) %}
+        {% if count == 0 %}
+          <form method="post" action="/admin/campagnes/{{ c.idCampagnePari }}/gain" style="display:block; margin:.25rem 0 .75rem 0;">
+            <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+            <textarea name="gain" rows="3" cols="60" placeholder="Décrivez les gains (max 2000 caractères)">{{ c.gain is not null ? c.gain : '' }}</textarea>
+            <div><button>Enregistrer gain</button></div>
+          </form>
+        {% else %}
+          <em style="color:#888">({{ count }} inscrit(s) — gain verrouillé)</em>
+        {% endif %}
+      </li>
+    {% else %}
+      <li>Pas de campagne</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

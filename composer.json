@@ -1,0 +1,32 @@
+{
+  "name": "jba/championsleague",
+  "description": "description",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "JB",
+      "email": "email@example.com"
+    }
+  ],
+  "require": {
+    "spipu/html2pdf": "*",
+    "ext-sodium": "*",
+    "ext-curl": "*",
+    "ext-pdo": "*",
+    "phpmailer/phpmailer": "*",
+    "slim/slim": "*",
+    "slim/psr7": "^1.7",
+    "twig/twig": "^3.0"
+  },
+  "autoload": {
+    "files": [
+      "src/Fonctions/fonctions.php",
+      "src/Fonctions/CSRF.php"
+    ],
+    "psr-4": {
+      "App\\": "src"
+    }
+
+  }
+}

@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Utilisateurs</h1>
+  <p><a href="/admin/users/new">Créer un parieur</a></p>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Pseudo</th>
+        <th>Email</th>
+        <th>Type</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ u.idUtilisateur }}</td>
+        <td>{{ u.pseudo }}</td>
+        <td>{{ u.mail }}</td>
+        <td>{{ u.idTypeUtilisateur == 2 ? 'administrateur' : 'parieur' }}</td>
+        <td>
+          {% if not u.motDePasseHasch %}
+            <form method="post" action="/admin/users/{{ u.idUtilisateur }}/resend-invite" style="display:inline">
+              <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+              <button>Renvoyer l'invitation</button>
+            </form>
+          {% else %}
+            <em>Activé</em>
+          {% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">Aucun utilisateur</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

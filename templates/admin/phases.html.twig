@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Phases — Campagne: {{ campagne.libelle }}</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/admin/campagnes/{{ campagne.idCampagnePari }}/phases">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label>Ordre <input type="number" name="ordre" value="1" min="1" required></label>
+    <label>Libellé <input name="libelle" required></label>
+    <label>Date limite
+      <input type="datetime-local" name="dateheureLimite" step="1" required>
+    </label>
+    <label>Type
+      <select name="idTypePhase" required>
+        {% for t in types %}<option value="{{ t.idTypePhase }}">{{ t.libelle }}</option>{% endfor %}
+      </select>
+    </label>
+    <button>Créer</button>
+  </form>
+  <h2>Liste</h2>
+  <ul>
+    {% for p in phases %}
+      {% set count = (apCounts[p.idPhaseCampagne] ?? 0) %}
+      <li>#{{ p.idPhaseCampagne }} — {{ p.ordre }} — {{ p.libelle }} — {{ p.typeLibelle }} — Limite: {{ p.dateheureLimite }} —
+        <a href="/admin/phases/{{ p.idPhaseCampagne }}/a-parier">Gérer AParier</a> —
+        <a href="/admin/phases/{{ p.idPhaseCampagne }}/calculs">Calculs de points</a>
+        {% if count == 0 %}
+          <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/delete" style="display:inline" onsubmit="return confirm('Supprimer cette phase ?');">
+            <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+            <button>Supprimer</button>
+          </form>
+        {% else %}
+          <em style="color:#888">({{ count }} à parier)</em>
+        {% endif %}
+      </li>
+    {% else %}
+      <li>Pas de phase</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

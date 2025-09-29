@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Éléments à parier — {{ campagne.libelle }} — {{ phase.libelle }} (Phase #{{ phase.idPhaseCampagne }})</h1>
+  {% if type %}<p>Type de phase: {{ type.libelle }}</p>{% endif %}
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label>Libellé à parier <input name="libellePari" required></label>
+    <button>Ajouter</button>
+  </form>
+  <h3>Ajout en lot</h3>
+  <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label>Un libellé par ligne</label><br>
+    <textarea name="batch" rows="6" cols="60" placeholder="Exemple:\nEquipe A - Equipe B\nEquipe C - Equipe D\n..."></textarea>
+    <br>
+    <button>Ajouter en lot</button>
+  </form>
+  <h2>Liste</h2>
+  {% if items|length == 0 %}
+    <p>Pas d'élément</p>
+  {% else %}
+    <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier/resultats" style="margin:.5rem 0 1rem 0;">
+      <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+      <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+        <thead>
+          <tr>
+            <th>À parier</th>
+            {% for i in 1..nb %}
+              <th>{{ labels[i] ?? ('Valeur ' ~ i) }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+            <tr>
+              <td>#{{ it.idAParier }} — {{ it.libellePari }}</td>
+              {% for i in 1..nb %}
+                {% set val = (results[it.idAParier][i] ?? '') %}
+                <td>
+                  <input name="res[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ labels[i] ?? ('Valeur ' ~ i) }}">
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:.5rem">
+        <button>Enregistrer tous les résultats</button>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}

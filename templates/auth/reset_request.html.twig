@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Réinitialiser votre mot de passe</h1>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <form method="post" action="/account/reset">
+    <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+    <label for="mail">Votre email</label>
+    <input type="email" id="mail" name="mail" required>
+    <button type="submit">Envoyer le lien</button>
+  </form>
+{% endblock %}
+
