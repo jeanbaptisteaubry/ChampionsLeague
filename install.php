@@ -112,8 +112,11 @@ if (!is_file($schema)) { err("Manquant: sql/script.sql"); exit(1); }
 println("Script de structure: $schema");
 if (confirm("Exécuter le script de structure ?")) {
     $sql = file_get_contents($schema);
+    // Harmoniser tout SET NAMES dans le script sur la collation choisie
+    $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
     // Forcer collation durant l'exécution
     $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
+    $pdo->exec("SET SESSION collation_connection = '$collation'");
     foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
         if ($stmt !== '') $pdo->exec($stmt);
     }
@@ -128,6 +131,8 @@ if (is_file($seed)) {
     println("Script de données: $seed");
     if (confirm("Charger les données par défaut ?")) {
         $sql = file_get_contents($seed);
+        // Harmoniser tout SET NAMES dans le script sur la collation choisie
+        $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
         // Patch de compat: certaines lignes peuvent omettre la liste de colonnes
         $sql = str_replace(
             "INSERT INTO `AParier` SELECT",
@@ -140,6 +145,7 @@ if (is_file($seed)) {
             $sql
         );
         $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
+        $pdo->exec("SET SESSION collation_connection = '$collation'");
         foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
             if ($stmt !== '') $pdo->exec($stmt);
         }
