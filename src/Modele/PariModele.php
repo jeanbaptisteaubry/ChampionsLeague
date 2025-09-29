@@ -65,4 +65,16 @@ final class PariModele
         }
         return $rows;
     }
+
+    public function countByUserAndCampagne(int $idParieur, int $idCampagnePari): int
+    {
+        $sql = 'SELECT COUNT(*)
+                FROM `Pari` pr
+                JOIN `AParier` a ON pr.`idAParier` = a.`idAParier`
+                JOIN `PhaseCampagne` pc ON a.`idPhaseCampagne` = pc.`idPhaseCampagne`
+                WHERE pr.`idParieur` = :u AND pc.`idCampagnePari` = :c';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':u' => $idParieur, ':c' => $idCampagnePari]);
+        return (int)$stmt->fetchColumn();
+    }
 }

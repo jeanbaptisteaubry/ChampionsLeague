@@ -156,19 +156,23 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel) {
 
 // Parieur area
 $app->group('/parieur', function ($group) use ($parieur) {
-    $group->get('', [$parieur, 'home']);
+    // Redirige la racine parieur vers la page campagnes
+    $group->get('', function ($request, $response) {
+        return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+    });
     $group->get('/password', [$parieur, 'showPassword']);
     $group->post('/password', [$parieur, 'updatePassword']);
     // Campagnes
     $group->get('/campagnes', [$parieur, 'campagnesPage']);
     $group->get('/campagnes/{idCampagne}', [$parieur, 'campagneDetail']);
+    $group->get('/campagnes/{idCampagne}/synthese', [$parieur, 'syntheseCampagne']);
     $group->post('/campagnes', [$parieur, 'inscrire']);
     $group->post('/campagnes/{idCampagne}/desinscrire', [$parieur, 'desinscrire']);
     $group->get('/campagnes/{idCampagne}/desinscrire', function ($request, $response) {
         return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
     });
     $group->get('/phases/{idPhase}/parier', [$parieur, 'parier']);
-    $group->post('/phases/{idPhase}/parier', [$parieur, 'placer']);
+    $group->post('/phases/{idPhase}/parier', [$parieur, 'placerTabulaire']);
     $group->get('/phases/{idPhase}/resultats', [$parieur, 'resultatsPhase']);
     $group->get('/phases/{idPhase}/resultats.csv', [$parieur, 'resultatsPhaseCsv']);
 })->add($requireRole('parieur'))->add($requireAuth);

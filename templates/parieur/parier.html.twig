@@ -3,7 +3,9 @@
   <h1>Placer des paris — Phase #{{ idPhase }}</h1>
   <p>
     <a href="/parieur/campagnes/{{ idCampagne }}">← Retour à la campagne</a>
-    — <a href="/parieur/phases/{{ idPhase }}/resultats">Voir résultats des paris</a>
+    {% if closed %}
+      — <a href="/parieur/phases/{{ idPhase }}/resultats">Voir résultats des paris</a>
+    {% endif %}
   </p>
   {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
   {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}

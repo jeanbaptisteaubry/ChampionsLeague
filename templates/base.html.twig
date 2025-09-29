@@ -22,9 +22,8 @@
           <a href="/admin/campagnes">Campagnes</a>
           <a href="/admin/types">Types de phase</a>
         {% else %}
-          <a href="/parieur">Espace parieur</a>
-          <a href="/parieur/password">Changer le mot de passe</a>
           <a href="/parieur/campagnes">Campagnes</a>
+          <a href="/parieur/password">Changer le mot de passe</a>
         {% endif %}
         <a href="/logout">Déconnexion ({{ app.user.pseudo }})</a>
       {% else %}

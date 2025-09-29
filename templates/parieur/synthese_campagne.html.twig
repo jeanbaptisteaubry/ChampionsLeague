@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Synthèse — {{ campagne.libelle }}</h1>
+  <p><a href="/parieur/campagnes/{{ campagne.idCampagnePari }}">← Retour à la campagne</a></p>
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+    <thead>
+      <tr>
+        <th>Phase</th>
+        {% for u in participants %}
+          <th>{{ u.pseudo }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in phases %}
+        <tr>
+          <td>#{{ p.idPhaseCampagne }} — {{ p.libelle }} ({{ p.dateheureLimite }})</td>
+          {% for u in participants %}
+            <td>{{ matrix[p.idPhaseCampagne][u.idUtilisateur]|default(0) }}</td>
+          {% endfor %}
+          <td><a href="/parieur/phases/{{ p.idPhaseCampagne }}/resultats">Détail</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="{{ 2 + participants|length }}">Aucune phase</td></tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Total</th>
+        {% for u in participants %}
+          <th>{{ totals[u.idUtilisateur]|default(0) }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </tfoot>
+  </table>
+{% endblock %}
+
