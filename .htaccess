@@ -1,0 +1,16 @@
+# If you cannot set the web server DocumentRoot to `public/`,
+# use this .htaccess at the repository root to route everything there.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Send Authorization header to PHP (for APIs/middleware)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # If requesting the repo root, go to public/
+    RewriteRule ^$ public/ [L]
+
+    # Otherwise, rewrite everything to public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
