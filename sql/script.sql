@@ -2,7 +2,7 @@
 -- Tables: TypeUtilisateur, Utilisateur
 -- Note: ajoutez d'autres tables/contraintes selon les besoins
 
-SET NAMES utf8mb4;
+
 
 -- Table des types d'utilisateur
 -- Drop in FK order (children first)
