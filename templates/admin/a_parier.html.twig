@@ -1,6 +1,9 @@
 {% extends 'base.html.twig' %}
 {% block body %}
   <h1>Éléments à parier — {{ campagne.libelle }} — {{ phase.libelle }} (Phase #{{ phase.idPhaseCampagne }})</h1>
+  <p>
+    <a href="/admin/campagnes/{{ campagne.idCampagnePari }}/phases">← Retour aux phases de la campagne</a>
+  </p>
   {% if type %}<p>Type de phase: {{ type.libelle }}</p>{% endif %}
   {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
   {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
