@@ -91,6 +91,37 @@ $collation = pickCollation($pdo, $bdd);
 try { $pdo->exec("SET NAMES utf8mb4 COLLATE $collation"); } catch (Throwable $e) {}
 try { $pdo->exec("SET SESSION collation_connection = '$collation'"); } catch (Throwable $e) {}
 
+// Debug collations et options
+function debugCollationState(PDO $pdo, string $db, string $label): void {
+    $server = $pdo->query("SHOW VARIABLES LIKE 'collation_server'")->fetch(PDO::FETCH_ASSOC)['Value'] ?? '';
+    $conn = $pdo->query("SHOW VARIABLES LIKE 'collation_connection'")->fetch(PDO::FETCH_ASSOC)['Value'] ?? '';
+    $stmt = $pdo->prepare("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?");
+    $dbcol = ($stmt->execute([$db])) ? (string)($stmt->fetchColumn() ?: '') : '';
+    println("[DEBUG] collation_server=$server | collation_database=$dbcol | collation_connection=$conn");
+}
+debugCollationState($pdo, $bdd, 'init');
+
+// Option: override collation utilisée pendant l'installation
+if (confirm("Forcer une collation spécifique au lieu de '$collation' ?")) {
+    $wanted = prompt("Collation (ex: utf8mb4_general_ci)", $collation);
+    if ($wanted !== '' && $wanted !== $collation) {
+        $check = $pdo->prepare("SHOW COLLATION LIKE ?");
+        $check->execute([$wanted]);
+        if ($check->fetch()) {
+            $collation = $wanted;
+            println("[DEBUG] Collation forcée: $collation");
+            try { $pdo->exec("SET NAMES utf8mb4 COLLATE $collation"); } catch (Throwable $e) {}
+            try { $pdo->exec("SET SESSION collation_connection = '$collation'"); } catch (Throwable $e) {}
+            debugCollationState($pdo, $bdd, 'override');
+        } else {
+            println("[DEBUG] Collation inconnue, on conserve: $collation");
+        }
+    }
+}
+
+// Proposition: harmoniser les SET NAMES présents dans les scripts SQL
+$cleanSetNames = confirm("Harmoniser les 'SET NAMES' des scripts SQL avec '$collation' ?");
+
 // Vidage base
 println("⚠️ Cette étape supprime toutes les tables de '$bdd'.");
 if(confirm("Confirmer vidage ?")){
@@ -112,13 +143,24 @@ if (!is_file($schema)) { err("Manquant: sql/script.sql"); exit(1); }
 println("Script de structure: $schema");
 if (confirm("Exécuter le script de structure ?")) {
     $sql = file_get_contents($schema);
-    // Harmoniser tout SET NAMES dans le script sur la collation choisie
-    $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
+    if ($cleanSetNames) {
+        $before = $sql;
+        $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
+        if ($before !== $sql) println("[DEBUG] SET NAMES harmonisé dans script.sql");
+    }
     // Forcer collation durant l'exécution
     $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
     $pdo->exec("SET SESSION collation_connection = '$collation'");
+    debugCollationState($pdo, $bdd, 'before-structure');
     foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
-        if ($stmt !== '') $pdo->exec($stmt);
+        if ($stmt === '') continue;
+        try {
+            $pdo->exec($stmt);
+        } catch (PDOException $e) {
+            err('Erreur SQL (structure): '.$e->getMessage());
+            err('Instruction: '.substr($stmt,0,200));
+            exit(1);
+        }
     }
     ok("Structure appliquée.");
 } else {
@@ -131,8 +173,11 @@ if (is_file($seed)) {
     println("Script de données: $seed");
     if (confirm("Charger les données par défaut ?")) {
         $sql = file_get_contents($seed);
-        // Harmoniser tout SET NAMES dans le script sur la collation choisie
-        $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
+        if ($cleanSetNames) {
+            $before = $sql;
+            $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
+            if ($before !== $sql) println("[DEBUG] SET NAMES harmonisé dans data.sql");
+        }
         // Patch de compat: certaines lignes peuvent omettre la liste de colonnes
         $sql = str_replace(
             "INSERT INTO `AParier` SELECT",
@@ -146,8 +191,16 @@ if (is_file($seed)) {
         );
         $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
         $pdo->exec("SET SESSION collation_connection = '$collation'");
+        debugCollationState($pdo, $bdd, 'before-data');
         foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
-            if ($stmt !== '') $pdo->exec($stmt);
+            if ($stmt === '') continue;
+            try {
+                $pdo->exec($stmt);
+            } catch (PDOException $e) {
+                err('Erreur SQL (data): '.$e->getMessage());
+                err('Instruction: '.substr($stmt,0,200));
+                exit(1);
+            }
         }
         ok("Données chargées.");
     } else {
