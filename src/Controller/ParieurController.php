@@ -367,6 +367,7 @@ final class ParieurController
             'title' => 'Placer des paris',
             'idPhase' => $idPhase,
             'idCampagne' => (int)($phase['idCampagnePari'] ?? 0),
+            'deadline' => ($phase['dateheureLimite'] ?? null),
             'items' => $items,
             'nb' => $nb,
             'labels' => $labels,

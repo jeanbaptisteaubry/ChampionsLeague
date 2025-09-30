@@ -1,26 +1,29 @@
-{% extends 'base.html.twig' %}
+﻿{% extends 'base.html.twig' %}
 {% block body %}
-  <h1>Placer des paris — Phase #{{ idPhase }}</h1>
+  <h1>Placer des paris â€” Phase #{{ idPhase }}</h1>
   <p>
-    <a href="/parieur/campagnes/{{ idCampagne }}">← Retour à la campagne</a>
+    <a href="/parieur/campagnes/{{ idCampagne }}">â† Retour Ã  la campagne</a>
     {% if closed or locked %}
-      — <a href="/parieur/phases/{{ idPhase }}/resultats">Voir résultats des paris</a>
+      â€” <a href="/parieur/phases/{{ idPhase }}/resultats">Voir rÃ©sultats des paris</a>
     {% endif %}
   </p>
   {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
   {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
   {% if closed %}
-    <p class="flash-err">Phase clôturée: les paris ne sont plus acceptés.</p>
+    <p class="flash-err">Phase clÃ´turÃ©e: les paris ne sont plus acceptÃ©s.</p>
   {% endif %}
+  <div style="margin:.5rem 0; color:#555">
+    Clôture: {{ deadline|date('d/m/Y H:i') }} — Heure serveur: {{ "now"|date('d/m/Y H:i:s') }}
+  </div>
   {% if items|length == 0 %}
-    <p>Pas d'élément à parier</p>
+    <p>Pas d'Ã©lÃ©ment Ã  parier</p>
   {% else %}
     <form method="post" action="/parieur/phases/{{ idPhase }}/parier">
       <input type="hidden" name="_csrf" value="{{ app.csrf }}">
       <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
         <thead>
           <tr>
-            <th>À parier</th>
+            <th>Ã€ parier</th>
             {% for i in 1..nb %}
               <th>{{ labels[i] ?? ('Valeur ' ~ i) }}</th>
             {% endfor %}
@@ -29,7 +32,7 @@
         <tbody>
           {% for it in items %}
             <tr>
-              <td>#{{ it.idAParier }} — {{ it.libellePari }}</td>
+              <td>#{{ it.idAParier }} â€” {{ it.libellePari }}</td>
               {% for i in 1..nb %}
                 {% set label = (labels[i] ?? ('Valeur ' ~ i)) %}
                 {% set val = (existing[it.idAParier][i] ?? '') %}
@@ -49,7 +52,7 @@
         <button type="submit" {% if closed %}disabled{% endif %} onclick="return confirm('Verrouiller vos paris pour cette phase ? Vous ne pourrez plus les modifier.');">Verrouiller mes paris</button>
       </form>
     {% else %}
-      <p class="flash-ok" style="margin-top:.5rem">Vous avez verrouillé vos paris. Vous pouvez consulter ceux des autres.</p>
+      <p class="flash-ok" style="margin-top:.5rem">Vous avez verrouillÃ© vos paris. Vous pouvez consulter ceux des autres.</p>
     {% endif %}
   {% endif %}
 {% endblock %}
