@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace App\Controller;
@@ -42,6 +42,20 @@ final class ParieurController
         return $response;
     }
 
+    public function showPseudo(Request $request, Response $response): Response
+    {
+        $current = (string)($_SESSION['user']['pseudo'] ?? '');
+        $html = $this->twig->render('parieur/pseudo.html.twig', [
+            'title' => 'Changer le pseudo',
+            'current' => $current,
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
+        ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
+        $response->getBody()->write($html);
+        return $response;
+    }
+
     public function updatePassword(Request $request, Response $response): Response
     {
         $data = (array)($request->getParsedBody() ?? []);
@@ -50,7 +64,7 @@ final class ParieurController
 
         // CSRF
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée. Veuillez réessayer.';
+            $_SESSION['flash_error'] = 'Session expirÃ©e. Veuillez rÃ©essayer.';
             return $response->withHeader('Location', '/parieur/password')->withStatus(302);
         }
 
@@ -66,7 +80,7 @@ final class ParieurController
 
         $id = (int)($_SESSION['user']['id'] ?? 0);
         if ($id <= 0) {
-            $_SESSION['flash_error'] = 'Non authentifié';
+            $_SESSION['flash_error'] = 'Non authentifiÃ©';
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
@@ -83,7 +97,7 @@ final class ParieurController
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         $idCampagne = (int)($data['idCampagnePari'] ?? 0);
@@ -92,7 +106,7 @@ final class ParieurController
             $_SESSION['flash_error'] = 'Champs invalides';
         } else {
             $this->inscriptions->inscrire($idUser, $idCampagne);
-            $_SESSION['flash_ok'] = 'Inscription enregistrée';
+            $_SESSION['flash_ok'] = 'Inscription enregistrÃ©e';
         }
         return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
     }
@@ -101,7 +115,7 @@ final class ParieurController
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         $idCampagne = (int)($args['idCampagne'] ?? 0);
@@ -109,14 +123,14 @@ final class ParieurController
         if ($idCampagne <= 0 || $idUser <= 0) {
             $_SESSION['flash_error'] = 'Champs invalides';
         } else {
-            // Bloquer la désinscription si des paris existent sur cette campagne
+            // Bloquer la dÃ©sinscription si des paris existent sur cette campagne
             $countBets = $this->paris->countByUserAndCampagne($idUser, $idCampagne);
             if ($countBets > 0) {
-                $_SESSION['flash_error'] = 'Impossible de se désinscrire: des paris sont enregistrés sur cette campagne';
+                $_SESSION['flash_error'] = 'Impossible de se dÃ©sinscrire: des paris sont enregistrÃ©s sur cette campagne';
                 return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
             }
             $this->inscriptions->desinscrire($idUser, $idCampagne);
-            $_SESSION['flash_ok'] = 'Désinscription effectuée';
+            $_SESSION['flash_ok'] = 'DÃ©sinscription effectuÃ©e';
         }
         return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
     }
@@ -125,7 +139,7 @@ final class ParieurController
     {
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
         $enrolled = $this->inscriptions->listByUser($idUser);
-        // Compter les phases verrouillées par campagne pour l'utilisateur
+        // Compter les phases verrouillÃ©es par campagne pour l'utilisateur
         $lockedByCampagne = [];
         foreach ($enrolled as $c) {
             $cid = (int)($c['idCampagnePari'] ?? 0);
@@ -161,7 +175,7 @@ final class ParieurController
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
-            $_SESSION['flash_error'] = 'Vous devez être inscrit à cette campagne';
+            $_SESSION['flash_error'] = 'Vous devez Ãªtre inscrit Ã  cette campagne';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         $campagne = $this->campagnes->findById($idCampagne);
@@ -173,7 +187,7 @@ final class ParieurController
             if ($pid > 0) { $lockedByPhase[$pid] = $this->locks->isLocked($idUser, $pid); }
         }
         $html = $this->twig->render('parieur/campagne.html.twig', [
-            'title' => 'Campagne — ' . ($campagne['libelle'] ?? ''),
+            'title' => 'Campagne â€” ' . ($campagne['libelle'] ?? ''),
             'campagne' => $campagne,
             'phases' => $phases,
             'lockedByPhase' => $lockedByPhase,
@@ -192,7 +206,7 @@ final class ParieurController
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
-            $_SESSION['flash_error'] = 'Vous devez être inscrit à cette campagne';
+            $_SESSION['flash_error'] = 'Vous devez Ãªtre inscrit Ã  cette campagne';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
 
@@ -207,7 +221,7 @@ final class ParieurController
         foreach ($phases as $p) {
             $idPhase = (int)$p['idPhaseCampagne'];
             $items = $this->aParier->findByPhase($idPhase);
-            // Résultats officiels et config calcul
+            // RÃ©sultats officiels et config calcul
             $official = [];
             foreach ($items as $it) {
                 $rid = (int)$it['idAParier'];
@@ -248,7 +262,7 @@ final class ParieurController
         }
 
         $html = $this->twig->render('parieur/synthese_campagne.html.twig', [
-            'title' => 'Synthèse — ' . ($campagne['libelle'] ?? ''),
+            'title' => 'SynthÃ¨se â€” ' . ($campagne['libelle'] ?? ''),
             'campagne' => $campagne,
             'phases' => $phases,
             'participants' => $participants,
@@ -268,7 +282,7 @@ final class ParieurController
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
-            $_SESSION['flash_error'] = 'Vous devez Ǧtre inscrit �� cette campagne';
+            $_SESSION['flash_error'] = 'Vous devez Ç¦tre inscrit ï¿½ï¿½ cette campagne';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
 
@@ -331,7 +345,7 @@ final class ParieurController
         usort($rows, function($a,$b){ return $b['total'] <=> $a['total']; });
 
         $html = $this->twig->render('parieur/classement.html.twig', [
-            'title' => 'Classement — ' . ($campagne['libelle'] ?? ''),
+            'title' => 'Classement â€” ' . ($campagne['libelle'] ?? ''),
             'campagne' => $campagne,
             'classement' => $rows,
         ]);
@@ -389,19 +403,19 @@ final class ParieurController
         if ($phase && !empty($phase['dateheureLimite'])) {
             try {
                 if ((new \DateTimeImmutable($phase['dateheureLimite'])) < (new \DateTimeImmutable('now'))) {
-                    $_SESSION['flash_error'] = 'Phase clôturée: les paris ne sont plus acceptés';
+                    $_SESSION['flash_error'] = 'Phase clÃ´turÃ©e: les paris ne sont plus acceptÃ©s';
                     return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
                 }
             } catch (\Throwable $e) {}
         }
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
         if ($this->locks->isLocked($idUser, $idPhase)) {
-            $_SESSION['flash_error'] = 'Vous avez verrouillé vos paris pour cette phase. Modification impossible.';
+            $_SESSION['flash_error'] = 'Vous avez verrouillÃ© vos paris pour cette phase. Modification impossible.';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $valuesByItem = [];
@@ -417,7 +431,7 @@ final class ParieurController
         foreach ($valuesByItem as $idA => $vals) {
             $this->paris->placerValeurs($idUser, (int)$idA, $vals);
         }
-        $_SESSION['flash_ok'] = 'Paris enregistrés';
+        $_SESSION['flash_ok'] = 'Paris enregistrÃ©s';
         return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
     }
 
@@ -432,7 +446,7 @@ final class ParieurController
         $idCampagne = (int)$phase['idCampagnePari'];
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
         if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
-            $_SESSION['flash_error'] = 'Vous devez être inscrit à cette campagne';
+            $_SESSION['flash_error'] = 'Vous devez Ãªtre inscrit Ã  cette campagne';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         // Interdire la consultation avant la limite
@@ -442,7 +456,7 @@ final class ParieurController
         }
         $locked = $this->locks->isLocked($idUser, $idPhase);
         if ($beforeLimit && !$locked) {
-            $_SESSION['flash_error'] = 'Les résultats seront visibles après la date limite.';
+            $_SESSION['flash_error'] = 'Les rÃ©sultats seront visibles aprÃ¨s la date limite.';
             return $response->withHeader('Location', '/parieur/campagnes/' . $idCampagne)->withStatus(302);
         }
         $campagne = $this->campagnes->findById($idCampagne);
@@ -453,12 +467,12 @@ final class ParieurController
         $type = (new \App\Modele\TypePhaseModele())->findById((int)$phase['idTypePhase']);
         $nb = max(1, (int)($type['nbValeurParPari'] ?? 1));
 
-        // Préparer cellule [idAParier][idUtilisateur] => "val1 | val2 | ..." et points
+        // PrÃ©parer cellule [idAParier][idUtilisateur] => "val1 | val2 | ..." et points
         $cells = [];
         $points = [];
         $totals = [];
 
-        // Résultats officiels par item
+        // RÃ©sultats officiels par item
         $official = [];
         foreach ($items as $it) {
             $rid = (int)$it['idAParier'];
@@ -513,7 +527,7 @@ final class ParieurController
         }
 
         $html = $this->twig->render('parieur/resultats_phase.html.twig', [
-            'title' => 'Résultats des paris — ' . ($campagne['libelle'] ?? ''),
+            'title' => 'RÃ©sultats des paris â€” ' . ($campagne['libelle'] ?? ''),
             'campagne' => $campagne,
             'phase' => $phase,
             'participants' => $participants,
@@ -623,19 +637,19 @@ final class ParieurController
         if ($phase && !empty($phase['dateheureLimite'])) {
             try {
                 if ((new \DateTimeImmutable($phase['dateheureLimite'])) < (new \DateTimeImmutable('now'))) {
-                    $_SESSION['flash_error'] = 'Phase clôturée: les paris ne sont plus acceptés';
+                    $_SESSION['flash_error'] = 'Phase clÃ´turÃ©e: les paris ne sont plus acceptÃ©s';
                     return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
                 }
             } catch (\Throwable $e) {}
         }
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
         if ($this->locks->isLocked($idUser, $idPhase)) {
-            $_SESSION['flash_error'] = 'Vous avez verrouillé vos paris pour cette phase. Modification impossible.';
+            $_SESSION['flash_error'] = 'Vous avez verrouillÃ© vos paris pour cette phase. Modification impossible.';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $valuesByItem = [];
@@ -667,7 +681,7 @@ final class ParieurController
         foreach ($valuesByItem as $idA => $vals) {
             $this->paris->placerValeurs($idUser, (int)$idA, $vals);
         }
-        $_SESSION['flash_ok'] = 'Paris enregistrés';
+        $_SESSION['flash_ok'] = 'Paris enregistrÃ©s';
         return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
     }
 
@@ -681,17 +695,68 @@ final class ParieurController
         }
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
         $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
         if ($idCampagne > 0 && !$this->inscriptions->estInscrit($idUser, $idCampagne)) {
-            $_SESSION['flash_error'] = 'Vous devez être inscrit à la campagne';
+            $_SESSION['flash_error'] = 'Vous devez Ãªtre inscrit Ã  la campagne';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
         $this->locks->lock($idUser, $idPhase);
-        $_SESSION['flash_ok'] = 'Vos paris ont été verrouillés pour cette phase. Vous pouvez consulter ceux des autres.';
+        $_SESSION['flash_ok'] = 'Vos paris ont Ã©tÃ© verrouillÃ©s pour cette phase. Vous pouvez consulter ceux des autres.';
         return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
     }
+
+    public function updatePseudo(Request $request, Response $response): Response
+    {
+        $data = (array)($request->getParsedBody() ?? []);
+        $pseudo = trim((string)($data['pseudo'] ?? ''));
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expirée. Veuillez réessayer.';
+            return $response->withHeader('Location', '/parieur/pseudo')->withStatus(302);
+        }
+        if ($pseudo === '') {
+            $_SESSION['flash_error'] = 'Le pseudo ne peut pas être vide';
+            return $response->withHeader('Location', '/parieur/pseudo')->withStatus(302);
+        }
+        $id = (int)($_SESSION['user']['id'] ?? 0);
+        if ($id <= 0) {
+            $_SESSION['flash_error'] = 'Non authentifié';
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+        $me = $this->users->findById($id);
+        if (!$me) {
+            $_SESSION['flash_error'] = 'Utilisateur introuvable';
+            return $response->withHeader('Location', '/parieur/pseudo')->withStatus(302);
+        }
+        try {
+            $this->users->update($id, $pseudo, (string)$me['mail']);
+        } catch (\PDOException $e) {
+            $_SESSION['flash_error'] = 'Ce pseudo est déjà utilisé.';
+            return $response->withHeader('Location', '/parieur/pseudo')->withStatus(302);
+        }
+        $_SESSION['user']['pseudo'] = $pseudo;
+        $_SESSION['flash_ok'] = 'Pseudo mis à jour';
+        return $response->withHeader('Location', '/parieur/pseudo')->withStatus(302);
+    }
+
+    public function showPseudo(Request $request, Response $response): Response
+    {
+        $current = (string)($_SESSION['user']['pseudo'] ?? '');
+        $html = $this->twig->render('parieur/pseudo.html.twig', [
+            'title' => 'Changer le pseudo',
+            'current' => $current,
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
+        ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
+        $response->getBody()->write($html);
+        return $response;
+    }
 }
+
+
+
+

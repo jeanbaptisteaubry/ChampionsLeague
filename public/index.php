@@ -179,6 +179,9 @@ $app->group('/parieur', function ($group) use ($parieur) {
     });
     $group->get('/password', [$parieur, 'showPassword']);
     $group->post('/password', [$parieur, 'updatePassword']);
+    // Pseudo
+    $group->get('/pseudo', [$parieur, 'showPseudo']);
+    $group->post('/pseudo', [$parieur, 'updatePseudo']);
     // Campagnes
     $group->get('/campagnes', [$parieur, 'campagnesPage']);
     $group->get('/campagnes/{idCampagne}', [$parieur, 'campagneDetail']);
