@@ -23,7 +23,7 @@
         <td>{{ it.libellePari }}</td>
         {% set o = official[it.idAParier] ?? {} %}
         {% set hasOff = (o[1] is defined or o[2] is defined) %}
-        <td style="color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} — {% endif %}{{ o[2]|default('') }}</td>
+        <td style="text-align:center; color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} — {% endif %}{{ o[2]|default('') }}</td>
         {% for u in participants %}
           {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
           {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}
