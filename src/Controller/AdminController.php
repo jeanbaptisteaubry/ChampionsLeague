@@ -14,7 +14,7 @@ use App\Modele\TypeResultatModele;
 use App\Modele\PhaseCalculPointModele;
 use App\Modele\InscriptionPariModele;
 use App\Modele\UtilisateurTokenModele;
-use PHPMailer\PHPMailer\PHPMailer;
+use App\Service\Mailer;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -134,24 +134,13 @@ final class AdminController
         $base = $scheme . '://' . $host . ($port && !in_array($port, [80,443]) ? ':' . $port : '');
         $link = $base . '/account/activate/' . $token;
 
-        $mail = new PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host = '127.0.0.1';
-            $mail->Port = 1025; // Mailhog
-            $mail->SMTPAuth = false;
-            $mail->setFrom('no-reply@example.com', 'Champions League');
-            $mail->addAddress($toEmail, $pseudo);
-            $mail->Subject = 'Activation de votre compte';
-            $mail->isHTML(true);
-            $mail->Body = '<p>Bonjour ' . htmlspecialchars($pseudo) . ',</p>' .
-                '<p>Votre compte a été créé. Cliquez sur le lien suivant pour définir votre mot de passe:</p>' .
-                '<p><a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>' .
-                '<p>Ce lien expire dans 48h.</p>';
-            $mail->AltBody = "Bonjour $pseudo,\nActivez votre compte: $link\n(Lien valable 48h).";
-            $mail->send();
-        } catch (\Throwable $e) {
-            // En cas d'échec, on logguerait idéalement. Ici, on ignore silencieusement.
+        $html = '<p>Bonjour ' . htmlspecialchars($pseudo) . ',</p>' .
+            '<p>Votre compte a été créé. Cliquez sur le lien suivant pour définir votre mot de passe:</p>' .
+            '<p><a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>' .
+            '<p>Ce lien expire dans 48h.</p>';
+        $text = "Bonjour $pseudo,\nActivez votre compte: $link\n(Lien valable 48h).";
+        if (!Mailer::send($toEmail, $pseudo, 'Activation de votre compte', $html, $text)) {
+            error_log('[AdminController] Echec envoi email activation à ' . $toEmail);
         }
     }
 

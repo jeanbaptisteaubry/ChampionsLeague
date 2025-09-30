@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
 use App\Modele\UtilisateurTokenModele;
+use App\Service\Mailer;
 
 final class AuthController
 {
@@ -168,23 +169,14 @@ final class AuthController
         $base = $scheme . '://' . $host . ($port && !in_array($port, [80,443]) ? ':' . $port : '');
         $link = $base . $path;
 
-        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host = '127.0.0.1';
-            $mail->Port = 1025;
-            $mail->SMTPAuth = false;
-            $mail->setFrom('no-reply@example.com', 'Champions League');
-            $mail->addAddress($toEmail, $name);
-            $mail->Subject = $subject;
-            $mail->isHTML(true);
-            $mail->Body = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>' .
-                '<p>' . htmlspecialchars($intro) . '</p>' .
-                '<p><a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>' .
-                '<p>Ce lien expire dans 48h.</p>';
-            $mail->AltBody = "Bonjour $name,\n$intro\n$link\n(Lien valable 48h).";
-            $mail->send();
-        } catch (\Throwable $e) {}
+        $html = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>' .
+            '<p>' . htmlspecialchars($intro) . '</p>' .
+            '<p><a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>' .
+            '<p>Ce lien expire dans 48h.</p>';
+        $text = "Bonjour $name,\n$intro\n$link\n(Lien valable 48h).";
+        if (!Mailer::send($toEmail, $name, $subject, $html, $text)) {
+            error_log('[AuthController] Echec envoi email à ' . $toEmail);
+        }
     }
     public function activateForm(Request $request, Response $response, array $args): Response
     {
