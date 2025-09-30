@@ -105,6 +105,19 @@ $requireRole = function (string $role) use ($responseFactory) {
 // Global Twig globals middleware
 $app->add($setTwigGlobals);
 
+// Ensure UTF-8 content type for HTML responses
+$app->add(function (Request $request, RequestHandler $handler) use ($responseFactory): Response {
+    $response = $handler->handle($request);
+    $ct = $response->getHeaderLine('Content-Type');
+    if ($ct === '') {
+        return $response->withHeader('Content-Type', 'text/html; charset=UTF-8');
+    }
+    if (str_starts_with(strtolower($ct), 'text/html') && stripos($ct, 'charset=') === false) {
+        return $response->withHeader('Content-Type', 'text/html; charset=UTF-8');
+    }
+    return $response;
+});
+
 // Admin area
 $app->group('/admin', function ($group) use ($admin, $aParierModel) {
     $group->get('', [$admin, 'home']);

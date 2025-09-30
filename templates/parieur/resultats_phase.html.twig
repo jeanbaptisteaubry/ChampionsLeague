@@ -1,19 +1,19 @@
 {% extends 'base.html.twig' %}
 {% block body %}
-  <h1>Résultats des paris — {{ campagne.libelle }} — {{ phase.libelle }}</h1>
+  <h1>R&eacute;sultats des paris &mdash; {{ campagne.libelle }} &mdash; {{ phase.libelle }}</h1>
   <p>
-    <a href="/parieur/campagnes/{{ campagne.idCampagnePari }}">← Retour à la campagne</a>
-    — <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/parier">Aller parier</a>
-    — <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/resultats.csv">Exporter CSV</a>
+    <a href="/parieur/campagnes/{{ campagne.idCampagnePari }}">&larr; Retour &agrave; la campagne</a>
+    &mdash; <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/parier">Aller parier</a>
+    &mdash; <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/resultats.csv">Exporter CSV</a>
   </p>
   <div style="margin:.5rem 0; color:#555">
-    Clôture: {{ phase.dateheureLimite|date('d/m/Y H:i') }} — Heure serveur: {{ "now"|date('d/m/Y H:i:s') }}
+    Cl&ocirc;ture: {{ phase.dateheureLimite|date('d/m/Y H:i') }} &mdash; Heure serveur: {{ "now"|date('d/m/Y H:i:s') }}
   </div>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
     <thead>
       <tr>
-        <th>À parier</th>
-        <th>Résultat officiel</th>
+        <th>&Agrave; parier</th>
+        <th>R&eacute;sultat officiel</th>
         {% for u in participants %}
           <th>{{ u.pseudo }}</th>
         {% endfor %}
@@ -26,7 +26,7 @@
         <td>{{ it.libellePari }}</td>
         {% set o = official[it.idAParier] ?? {} %}
         {% set hasOff = (o[1] is defined or o[2] is defined) %}
-        <td style="text-align:center; color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} — {% endif %}{{ o[2]|default('') }}</td>
+        <td style="color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} &mdash; {% endif %}{{ o[2]|default('') }}</td>
         {% for u in participants %}
           {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
           {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}
@@ -40,12 +40,12 @@
               {% set style = 'background:#ffecec' %}
             {% endif %}
           {% endif %}
-          <td style="text-align:center;{{ style }}">{{ bet }}{% if bet %} — <strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
+          <td style="{{ style }}">{{ bet }}{% if bet %}<br><strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
         {% endfor %}
         <td></td>
       </tr>
     {% else %}
-      <tr><td colspan="{{ 3 + participants|length }}">Aucun élément à parier</td></tr>
+      <tr><td colspan="{{ 3 + participants|length }}">Aucun &eacute;l&eacute;ment &agrave; parier</td></tr>
     {% endfor %}
     </tbody>
     <tfoot>
@@ -58,15 +58,5 @@
       </tr>
     </tfoot>
   </table>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('table td strong').forEach(function (st) {
-        var td = st.parentElement;
-        if (!td) return;
-        var html = td.innerHTML;
-        // Remplace le séparateur avant <strong> par un saut de ligne
-        td.innerHTML = html.replace(/\s*[–—-]\s*<strong>/, '<br><strong>');
-      });
-    });
-  </script>
 {% endblock %}
+
