@@ -29,6 +29,10 @@ use Slim\Factory\AppFactory;
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+// Fix application timezone (server may be UTC)
+if (function_exists('date_default_timezone_set')) {
+    date_default_timezone_set('Europe/Paris');
+}
 
 // Initialize Twig
 $twig = TwigFactory::create(

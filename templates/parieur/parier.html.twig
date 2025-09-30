@@ -13,7 +13,7 @@
     <p class="flash-err">Phase cl&ocirc;tur&eacute;e: les paris ne sont plus accept&eacute;s.</p>
   {% endif %}
   <div style="margin:.5rem 0; color:#555">
-    Cl&ocirc;ture: {{ deadline|date('d/m/Y H:i') }} &mdash; Heure serveur: {{ "now"|date('d/m/Y H:i:s') }}
+    Cl&ocirc;ture: {{ deadline|date('d/m/Y H:i', 'Europe/Paris') }} &mdash; Heure serveur: {{ "now"|date('d/m/Y H:i:s', 'Europe/Paris') }}
   </div>
   {% if items|length == 0 %}
     <p>Pas d&rsquo;&eacute;l&eacute;ment &agrave; parier</p>
@@ -56,4 +56,3 @@
     {% endif %}
   {% endif %}
 {% endblock %}
-
