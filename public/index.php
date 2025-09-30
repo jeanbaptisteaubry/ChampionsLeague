@@ -165,6 +165,7 @@ $app->group('/parieur', function ($group) use ($parieur) {
     // Campagnes
     $group->get('/campagnes', [$parieur, 'campagnesPage']);
     $group->get('/campagnes/{idCampagne}', [$parieur, 'campagneDetail']);
+    $group->get('/campagnes/{idCampagne}/classement', [$parieur, 'classementCampagne']);
     $group->get('/campagnes/{idCampagne}/synthese', [$parieur, 'syntheseCampagne']);
     $group->post('/campagnes', [$parieur, 'inscrire']);
     $group->post('/campagnes/{idCampagne}/desinscrire', [$parieur, 'desinscrire']);

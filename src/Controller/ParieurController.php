@@ -259,6 +259,86 @@ final class ParieurController
         return $response;
     }
 
+    public function classementCampagne(Request $request, Response $response, array $args): Response
+    {
+        $idCampagne = (int)($args['idCampagne'] ?? 0);
+        $idUser = (int)($_SESSION['user']['id'] ?? 0);
+        if ($idCampagne <= 0 || $idUser <= 0) {
+            $_SESSION['flash_error'] = 'Campagne invalide';
+            return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+        }
+        if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
+            $_SESSION['flash_error'] = 'Vous devez Ǧtre inscrit �� cette campagne';
+            return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+        }
+
+        $campagne = $this->campagnes->findById($idCampagne);
+        $phases = $this->phases->findByCampagne($idCampagne);
+        $participants = $this->inscriptions->listUsersByCampagne($idCampagne);
+
+        $totals = [];
+        foreach ($participants as $u) { $totals[(int)$u['idUtilisateur']] = 0; }
+
+        foreach ($phases as $p) {
+            $idPhase = (int)$p['idPhaseCampagne'];
+            $items = $this->aParier->findByPhase($idPhase);
+            $official = [];
+            foreach ($items as $it) {
+                $rid = (int)$it['idAParier'];
+                $res = $this->reponses->findByAParier($rid);
+                $rvals = [];
+                foreach ($res as $r) { $rvals[(int)$r['numeroValeur']] = $r['valeurResultat']; }
+                $official[$rid] = $rvals;
+            }
+            $calc = $this->phaseCalc->listByPhase($idPhase);
+
+            foreach ($participants as $u) {
+                $uid = (int)$u['idUtilisateur'];
+                $bets = $this->paris->findForUserAndPhase($uid, $idPhase);
+                $byItem = [];
+                foreach ($bets as $b) { $byItem[(int)$b['idAParier']] = ($b['valeurs'] ?? []); }
+                foreach ($items as $it) {
+                    $idA = (int)$it['idAParier'];
+                    $betVals = $byItem[$idA] ?? [];
+                    $resVals = $official[$idA] ?? [];
+                    $b1 = isset($betVals[1]) ? (int)$betVals[1] : null;
+                    $b2 = isset($betVals[2]) ? (int)$betVals[2] : null;
+                    $r1 = isset($resVals[1]) ? (int)$resVals[1] : null;
+                    $r2 = isset($resVals[2]) ? (int)$resVals[2] : null;
+                    $earned = 0;
+                    foreach ($calc as $c) {
+                        $lib = (string)$c['libelle']; $nbp=(int)$c['nbPoint'];
+                        if ($lib==='1N2') {
+                            if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) {
+                                if (($b1<=>$b2)===($r1<=>$r2)) $earned += $nbp;
+                            }
+                        } elseif ($lib==='scoreExact') {
+                            if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) {
+                                if ($b1===$r1 && $b2===$r2) $earned += $nbp;
+                            }
+                        }
+                    }
+                    $totals[$uid] = ($totals[$uid] ?? 0) + $earned;
+                }
+            }
+        }
+
+        $rows = [];
+        foreach ($participants as $u) {
+            $uid = (int)$u['idUtilisateur'];
+            $rows[] = [ 'id' => $uid, 'pseudo' => $u['pseudo'], 'total' => (int)($totals[$uid] ?? 0) ];
+        }
+        usort($rows, function($a,$b){ return $b['total'] <=> $a['total']; });
+
+        $html = $this->twig->render('parieur/classement.html.twig', [
+            'title' => 'Classement — ' . ($campagne['libelle'] ?? ''),
+            'campagne' => $campagne,
+            'classement' => $rows,
+        ]);
+        $response->getBody()->write($html);
+        return $response;
+    }
+
     public function parier(Request $request, Response $response, array $args): Response
     {
         $idPhase = (int)$args['idPhase'];

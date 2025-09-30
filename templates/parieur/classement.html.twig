@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Classement — {{ campagne.libelle }}</h1>
+  <p>
+    <a href="/parieur/campagnes/{{ campagne.idCampagnePari }}">↩ Retour à la campagne</a>
+    — <a href="/parieur/campagnes/{{ campagne.idCampagnePari }}/synthese">Synthèse</a>
+  </p>
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Pseudo</th>
+        <th>Points</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in classement %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ row.pseudo }}</td>
+          <td>{{ row.total }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3">Aucun participant</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
+
