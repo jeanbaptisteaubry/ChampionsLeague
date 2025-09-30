@@ -2,11 +2,10 @@
 
 
 -- Campagne
-SET @campagne := 'Champions league 2025-2026';
 INSERT INTO `CampagnePari` (`libelle`, `description`)
-SELECT @campagne, NULL
-WHERE NOT EXISTS (SELECT 1 FROM `CampagnePari` WHERE `libelle` = @campagne);
-SET @idCampagne := (SELECT `idCampagnePari` FROM `CampagnePari` WHERE `libelle`=@campagne LIMIT 1);
+SELECT 'Champions league 2025-2026', NULL
+WHERE NOT EXISTS (SELECT 1 FROM `CampagnePari` WHERE `libelle` = 'Champions league 2025-2026');
+SET @idCampagne := (SELECT `idCampagnePari` FROM `CampagnePari` WHERE `libelle`='Champions league 2025-2026' LIMIT 1);
 
 -- Gain par défaut de la campagne (n'est défini que s'il est vide)
 UPDATE `CampagnePari`
@@ -14,11 +13,10 @@ SET `gain` = 'Une bouffe payée par le (ou les plus mauvais si égalité) en IG 
 WHERE `idCampagnePari` = @idCampagne AND (`gain` IS NULL OR `gain` = '');
 
 -- Type de phase "Journée" (2 valeurs)
-SET @typeLib := 'Journée';
 INSERT INTO `TypePhase` (`libelle`, `nbValeurParPari`)
-SELECT @typeLib, 2
-WHERE NOT EXISTS (SELECT 1 FROM `TypePhase` WHERE `libelle` = @typeLib);
-SET @idTypePhase := (SELECT `idTypePhase` FROM `TypePhase` WHERE `libelle`=@typeLib LIMIT 1);
+SELECT 'Journée', 2
+WHERE NOT EXISTS (SELECT 1 FROM `TypePhase` WHERE `libelle` = 'Journée');
+SET @idTypePhase := (SELECT `idTypePhase` FROM `TypePhase` WHERE `libelle`='Journée' LIMIT 1);
 REPLACE INTO `LibelleValeurPhase` (`idTypePhase`, `numeroValeur`, `libelle`) VALUES
 (@idTypePhase, 1, 'Domicile'),
 (@idTypePhase, 2, 'Extérieur');
