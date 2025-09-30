@@ -192,60 +192,56 @@ $seed = __DIR__ . '/sql/data.sql';
 if (is_file($seed)) {
     println("Script de données: $seed");
     if (confirm("Charger les données par défaut ?")) {
-        $sql = file_get_contents($seed);
-        if ($cleanSetNames) {
-            $before = $sql;
-            $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
-            if ($before !== $sql) println("[DEBUG] SET NAMES harmonisé dans data.sql");
-        }
-        // Harmoniser la collation des variables SQL (ex: @campagne)
-        $sql = preg_replace(
-            "/SET\s+@([A-Za-z0-9_]+)\s*:=\s*'([^']*)';/i",
-            "SET @\\1 := CONVERT('\\2' USING utf8mb4) COLLATE $collation;",
-            $sql
-        );
-        // Patch de compat: certaines lignes peuvent omettre la liste de colonnes
-        $sql = str_replace(
-            "INSERT INTO `AParier` SELECT",
-            "INSERT INTO `AParier` (`idPhaseCampagne`,`libellePari`) SELECT",
-            $sql
-        );
-        $sql = str_replace(
-            "INSERT INTO `PhaseCampagne` SELECT",
-            "INSERT INTO `PhaseCampagne` (`idCampagnePari`,`idTypePhase`,`ordre`,`libelle`,`dateheureLimite`) SELECT",
-            $sql
-        );
-        $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
-        $pdo->exec("SET SESSION collation_connection = '$collation'");
-        debugCollationState($pdo, $bdd, 'before-data');
-        $vars = [];
-        foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
-            if ($stmt === '') continue;
-            $toExec = $stmt;
-            if (preg_match("/^\s*SET\s+@([A-Za-z0-9_]+)\s*:=\s*'([^']*)'\s*;?\s*$/si", $stmt, $m)) {
-                $name = $m[1];
-                $val = $m[2];
-                $vars[$name] = $val;
-                $toExec = "SET @{$name} := CONVERT('".str_replace("'","''",$val)."' USING utf8mb4) COLLATE $collation";
-            } else {
-                if (!empty($vars)) {
-                    foreach ($vars as $k => $v) {
-                        $lit = "CONVERT('".str_replace("'","''",$v)."' USING utf8mb4) COLLATE $collation";
-                        $toExec = preg_replace('/@'.preg_quote($k,'/').'(?![A-Za-z0-9_])/',''.$lit.'',$toExec);
-                    }
+        if (confirm("Utiliser le seeder PHP (recommandé) ?")) {
+            require_once __DIR__ . '/bin/seed_default.php';
+            seed_default($pdo);
+            ok("Données chargées via seeder PHP.");
+        } else {
+            $sql = file_get_contents($seed);
+            if ($cleanSetNames) {
+                $before = $sql;
+                $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
+                if ($before !== $sql) println("[DEBUG] SET NAMES harmonisé dans data.sql");
+            }
+            $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
+            $pdo->exec("SET SESSION collation_connection = '$collation'");
+            debugCollationState($pdo, $bdd, 'before-data');
+            $vars = [];
+            foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
+                if ($stmt === '') continue;
+                $toExec = $stmt;
+                if (preg_match("/^\s*SET\s+@([A-Za-z0-9_]+)\s*:=\s*'([^']*)'\s*;?\s*$/si", $stmt, $m)) {
+                    $name = $m[1];
+                    $val = $m[2];
+                    $vars[$name] = $val;
+                    $toExec = "SET @{$name} := CONVERT('".str_replace("'","''",$val)."' USING utf8mb4) COLLATE $collation";
                 } else {
-                    $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+                    if (!empty($vars)) {
+                        foreach ($vars as $k => $v) {
+                            $lit = "CONVERT('".str_replace("'","''",$v)."' USING utf8mb4) COLLATE $collation";
+                            $toExec = preg_replace('/@'.preg_quote($k,'/').'(?![A-Za-z0-9_])/',''.$lit.'',$toExec);
+                        }
+                    } else {
+                        $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+                    }
+                }
+                try {
+                    $pdo->exec($toExec);
+                } catch (PDOException $e) {
+                    err('Erreur SQL (data): '.$e->getMessage());
+                    err('Instruction: '.substr($stmt,0,200));
+                    if (confirm("Échec data.sql. Utiliser le seeder PHP à la place ?")) {
+                        require_once __DIR__ . '/bin/seed_default.php';
+                        seed_default($pdo);
+                        ok("Données chargées via seeder PHP.");
+                        goto DATA_DONE;
+                    }
+                    exit(1);
                 }
             }
-            try {
-                $pdo->exec($toExec);
-            } catch (PDOException $e) {
-                err('Erreur SQL (data): '.$e->getMessage());
-                err('Instruction: '.substr($stmt,0,200));
-                exit(1);
-            }
+            ok("Données chargées.");
         }
-        ok("Données chargées.");
+        DATA_DONE: ;
     } else {
         println("Données ignorées.");
     }

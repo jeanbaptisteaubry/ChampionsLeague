@@ -114,6 +114,7 @@ CREATE TABLE `PhaseCampagne` (
   `libelle` VARCHAR(150) NOT NULL,
   `dateheureLimite` DATETIME NOT NULL,
   PRIMARY KEY (`idPhaseCampagne`),
+  UNIQUE KEY `uniq_phase_campagne_libelle` (`idCampagnePari`,`libelle`),
   KEY `idx_phase_campagne` (`idCampagnePari`),
   KEY `idx_phase_type` (`idTypePhase`),
   CONSTRAINT `fk_phase_campagne`
@@ -148,11 +149,12 @@ CREATE TABLE `AParier` (
   `idPhaseCampagne` INT UNSIGNED NOT NULL,
   `libellePari` VARCHAR(150) NOT NULL,
   PRIMARY KEY (`idAParier`),
+  UNIQUE KEY `uniq_aparier_phase_libelle` (`idPhaseCampagne`,`libellePari`),
   KEY `idx_aparier_phase` (`idPhaseCampagne`),
   CONSTRAINT `fk_aparier_phase`
     FOREIGN KEY (`idPhaseCampagne`) REFERENCES `PhaseCampagne`(`idPhaseCampagne`)
     ON UPDATE CASCADE ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Réponses officielles (résultats) pour un élément à parier
 CREATE TABLE `ReponsePari` (
