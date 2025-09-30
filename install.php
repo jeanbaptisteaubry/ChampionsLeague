@@ -152,12 +152,27 @@ if (confirm("Exécuter le script de structure ?")) {
     $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
     $pdo->exec("SET SESSION collation_connection = '$collation'");
     debugCollationState($pdo, $bdd, 'before-structure');
+    $vars = [];
     foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
         if ($stmt === '') continue;
-        // Collationner les variables @var utilisées dans les requêtes non-SET
         $toExec = $stmt;
-        if (!preg_match('/^\s*SET\s+@/i', $toExec)) {
-            $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+        // Capture et réécritures des SET @var := '...'
+        if (preg_match("/^\s*SET\s+@([A-Za-z0-9_]+)\s*:=\s*'([^']*)'\s*;?\s*$/si", $stmt, $m)) {
+            $name = $m[1];
+            $val = $m[2];
+            $vars[$name] = $val;
+            $toExec = "SET @{$name} := CONVERT('".str_replace("'","''",$val)."' USING utf8mb4) COLLATE $collation";
+        } else {
+            // Remplacer les usages @var par leur littéral collaté
+            if (!empty($vars)) {
+                foreach ($vars as $k => $v) {
+                    $lit = "CONVERT('".str_replace("'","''",$v)."' USING utf8mb4) COLLATE $collation";
+                    $toExec = preg_replace('/@'.preg_quote($k,'/').'(?![A-Za-z0-9_])/',''.$lit.'',$toExec);
+                }
+            } else {
+                // À défaut, collationner toute variable @xxx
+                $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+            }
         }
         try {
             $pdo->exec($toExec);
@@ -203,12 +218,24 @@ if (is_file($seed)) {
         $pdo->exec("SET NAMES utf8mb4 COLLATE $collation");
         $pdo->exec("SET SESSION collation_connection = '$collation'");
         debugCollationState($pdo, $bdd, 'before-data');
+        $vars = [];
         foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
             if ($stmt === '') continue;
-            // Collationner les variables @var utilisées dans les requêtes non-SET
             $toExec = $stmt;
-            if (!preg_match('/^\s*SET\s+@/i', $toExec)) {
-                $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+            if (preg_match("/^\s*SET\s+@([A-Za-z0-9_]+)\s*:=\s*'([^']*)'\s*;?\s*$/si", $stmt, $m)) {
+                $name = $m[1];
+                $val = $m[2];
+                $vars[$name] = $val;
+                $toExec = "SET @{$name} := CONVERT('".str_replace("'","''",$val)."' USING utf8mb4) COLLATE $collation";
+            } else {
+                if (!empty($vars)) {
+                    foreach ($vars as $k => $v) {
+                        $lit = "CONVERT('".str_replace("'","''",$v)."' USING utf8mb4) COLLATE $collation";
+                        $toExec = preg_replace('/@'.preg_quote($k,'/').'(?![A-Za-z0-9_])/',''.$lit.'',$toExec);
+                    }
+                } else {
+                    $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+                }
             }
             try {
                 $pdo->exec($toExec);
