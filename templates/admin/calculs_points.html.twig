@@ -2,8 +2,8 @@
 {% block body %}
   <h1>Calcul des points — {{ campagne.libelle }} — {{ phase.libelle }} (Phase #{{ phase.idPhaseCampagne }})</h1>
   <p>
-    <a href="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier">← Retour à la phase</a>
-    — <a href="/admin/campagnes/{{ campagne.idCampagnePari }}/phases">Retour aux phases de la campagne</a>
+    <a href="/admin/campagnes/{{ campagne.idCampagnePari }}/phases">Campagne</a> / <a href="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier">Phase</a>
+        
   </p>
   {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
   {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
