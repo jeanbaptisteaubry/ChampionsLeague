@@ -37,7 +37,7 @@
               {% set style = 'background:#ffecec' %}
             {% endif %}
           {% endif %}
-          <td style="{{ style }}">{{ bet }}{% if bet %} — <strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
+          <td style="text-align:center;{{ style }}">{{ bet }}{% if bet %} — <strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
         {% endfor %}
         <td></td>
       </tr>
