@@ -1,4 +1,4 @@
-SMTP_HOST 	mail.jbaubry.fr
+SMTP_HOST 	jbaubry.fr
 SMTP_PORT 465
 SMTP_USER 	adminpari@jbaubry.fr 
 SMTP_FROM 	adminpari@jbaubry.fr
