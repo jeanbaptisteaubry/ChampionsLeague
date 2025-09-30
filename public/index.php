@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+// Debug: afficher les erreurs en prod (temporaire)
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+
 require __DIR__ . '/../vendor/autoload.php';
 // Fallback au cas où l'autoload Composer des "files" n'est pas à jour
 if (!function_exists('csrf_token')) {
