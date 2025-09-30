@@ -17,6 +17,9 @@ final class Mailer
         $cfg = self::config();
         $mail = new PHPMailer(true);
         try {
+            // Force UTF-8 to avoid mojibake like "Ã©" in emails
+            $mail->CharSet = 'UTF-8';
+            $mail->Encoding = 'base64';
             if (!empty($cfg['transport']) && $cfg['transport'] === 'mail') {
                 $mail->isMail();
             } else {
@@ -101,4 +104,3 @@ final class Mailer
         return $cfg;
     }
 }
-
