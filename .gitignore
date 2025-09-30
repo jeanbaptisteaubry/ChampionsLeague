@@ -3,3 +3,6 @@ vendor/*
 /vendor
 /git
 composer.lock
+paramBDD.txt
+paramMAIL.txt
+paramBDD.txt
