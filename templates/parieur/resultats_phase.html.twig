@@ -6,6 +6,9 @@
     — <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/parier">Aller parier</a>
     — <a href="/parieur/phases/{{ phase.idPhaseCampagne }}/resultats.csv">Exporter CSV</a>
   </p>
+  <div style="margin:.5rem 0; color:#555">
+    Clôture: {{ phase.dateheureLimite|date('d/m/Y H:i') }} — Heure serveur: {{ "now"|date('d/m/Y H:i:s') }}
+  </div>
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
     <thead>
       <tr>
