@@ -6,3 +6,5 @@ composer.lock
 paramBDD.txt
 paramMAIL.txt
 paramBDD.txt
+composer.phar
+composer-setup.php
