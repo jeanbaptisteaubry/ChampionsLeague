@@ -3,3 +3,7 @@ SMTP_PORT 465
 SMTP_USER 	adminpari@jbaubry.fr 
 SMTP_FROM 	adminpari@jbaubry.fr
 SMTP_FROM_NAME Pari foot JBA 
+SMTP_SECURE ssl
+SMTP_USER adminpari@jbaubry.fr
+SMTP_PASS zGvkZprU9lBP
+SMTP_AUTH 1
