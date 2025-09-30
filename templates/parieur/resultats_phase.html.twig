@@ -55,4 +55,15 @@
       </tr>
     </tfoot>
   </table>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('table td strong').forEach(function (st) {
+        var td = st.parentElement;
+        if (!td) return;
+        var html = td.innerHTML;
+        // Remplace le séparateur avant <strong> par un saut de ligne
+        td.innerHTML = html.replace(/\s*[–—-]\s*<strong>/, '<br><strong>');
+      });
+    });
+  </script>
 {% endblock %}
