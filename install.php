@@ -154,8 +154,13 @@ if (confirm("Exécuter le script de structure ?")) {
     debugCollationState($pdo, $bdd, 'before-structure');
     foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
         if ($stmt === '') continue;
+        // Collationner les variables @var utilisées dans les requêtes non-SET
+        $toExec = $stmt;
+        if (!preg_match('/^\s*SET\s+@/i', $toExec)) {
+            $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+        }
         try {
-            $pdo->exec($stmt);
+            $pdo->exec($toExec);
         } catch (PDOException $e) {
             err('Erreur SQL (structure): '.$e->getMessage());
             err('Instruction: '.substr($stmt,0,200));
@@ -200,8 +205,13 @@ if (is_file($seed)) {
         debugCollationState($pdo, $bdd, 'before-data');
         foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
             if ($stmt === '') continue;
+            // Collationner les variables @var utilisées dans les requêtes non-SET
+            $toExec = $stmt;
+            if (!preg_match('/^\s*SET\s+@/i', $toExec)) {
+                $toExec = preg_replace('/@([A-Za-z0-9_]+)/', "CONVERT(@$1 USING utf8mb4) COLLATE $collation", $toExec);
+            }
             try {
-                $pdo->exec($stmt);
+                $pdo->exec($toExec);
             } catch (PDOException $e) {
                 err('Erreur SQL (data): '.$e->getMessage());
                 err('Instruction: '.substr($stmt,0,200));
