@@ -41,9 +41,9 @@ if (function_exists('date_default_timezone_set')) {
 
 // Initialize Twig
 $twig = TwigFactory::create(
-    templatesPath: __DIR__ . '/../templates',
-    cachePath: null, // set a path in production, e.g. __DIR__.'/../var/cache/twig'
-    debug: true
+    __DIR__ . '/../templates',
+    null, // set a path in production, e.g. __DIR__.'/../var/cache/twig'
+    true
 );
 
 // Create Slim app
@@ -121,7 +121,8 @@ $app->add(function (Request $request, RequestHandler $handler) use ($responseFac
     if ($ct === '') {
         return $response->withHeader('Content-Type', 'text/html; charset=UTF-8');
     }
-    if (str_starts_with(strtolower($ct), 'text/html') && stripos($ct, 'charset=') === false) {
+    $ctLower = strtolower($ct);
+    if (substr($ctLower, 0, 9) === 'text/html' && stripos($ct, 'charset=') === false) {
         return $response->withHeader('Content-Type', 'text/html; charset=UTF-8');
     }
     return $response;
