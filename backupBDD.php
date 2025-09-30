@@ -19,6 +19,34 @@ $filename      = $dbName . '_' . date('Y-m-d_His') . '.sql';
 $outFile       = rtrim($outDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
 // ======================================================
 
+// Charger la configuration depuis paramBDD.txt (si présent)
+$paramFile = __DIR__ . DIRECTORY_SEPARATOR . 'paramBDD.txt';
+if (is_file($paramFile)) {
+    $arr = [];
+    foreach (file($paramFile) as $line) {
+        $var = explode(' ', $line, 2);
+        if (!isset($var[1])) { $var[1] = ""; }
+        $arr[$var[0]] = trim($var[1]);
+    }
+    if (!empty($arr['IPBDD'])) {
+        $host = (string)$arr['IPBDD'];
+        if (strpos($host, ':') !== false) {
+            [$h, $p] = explode(':', $host, 2);
+            if ($h !== '') { $dbHost = $h; }
+            $p = trim($p);
+            if ($p !== '' && ctype_digit($p)) { $dbPort = (int)$p; }
+        } else {
+            $dbHost = $host;
+        }
+    }
+    if (!empty($arr['BDD']))     { $dbName = (string)$arr['BDD']; }
+    if (!empty($arr['USERBDD'])) { $dbUser = (string)$arr['USERBDD']; }
+    if (!empty($arr['MDPBDD']))  { $dbPass = (string)$arr['MDPBDD']; }
+    // Recalcul du nom/chemin de sortie après surcharge
+    $filename = $dbName . '_' . date('Y-m-d_His') . '.sql';
+    $outFile  = rtrim($outDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
+}
+
 @ini_set('memory_limit', '-1');
 @set_time_limit(0);
 
@@ -27,7 +55,7 @@ if (!is_dir($outDir) && !mkdir($outDir, 0775, true) && !is_dir($outDir)) {
     die("ERREUR: impossible de créer le dossier $outDir\n");
 }
 
-logln("== Backup MySQL: base=$dbName, sortie=$outFile");
+logln("== Backup MySQL: base=$dbName, host=$dbHost:$dbPort, sortie=$outFile");
 
 // 1) Tentative via Docker + mysqldump dans le conteneur
 if (hasDocker()) {

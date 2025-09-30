@@ -3,7 +3,7 @@
   <h1>Placer des paris — Phase #{{ idPhase }}</h1>
   <p>
     <a href="/parieur/campagnes/{{ idCampagne }}">← Retour à la campagne</a>
-    {% if closed %}
+    {% if closed or locked %}
       — <a href="/parieur/phases/{{ idPhase }}/resultats">Voir résultats des paris</a>
     {% endif %}
   </p>
@@ -33,15 +33,23 @@
               {% for i in 1..nb %}
                 {% set label = (labels[i] ?? ('Valeur ' ~ i)) %}
                 {% set val = (existing[it.idAParier][i] ?? '') %}
-                <td><input name="paris[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}" {% if closed %}disabled{% endif %}></td>
+                <td><input name="paris[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}" {% if closed or locked %}disabled{% endif %}></td>
               {% endfor %}
             </tr>
           {% endfor %}
         </tbody>
       </table>
       <div style="margin-top:.5rem">
-        <button {% if closed %}disabled{% endif %}>Enregistrer</button>
+        <button {% if closed or locked %}disabled{% endif %}>Enregistrer</button>
       </div>
     </form>
+    {% if not locked %}
+      <form method="post" action="/parieur/phases/{{ idPhase }}/verrouiller" style="margin-top:.5rem;">
+        <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+        <button type="submit" {% if closed %}disabled{% endif %} onclick="return confirm('Verrouiller vos paris pour cette phase ? Vous ne pourrez plus les modifier.');">Verrouiller mes paris</button>
+      </form>
+    {% else %}
+      <p class="flash-ok" style="margin-top:.5rem">Vous avez verrouillé vos paris. Vous pouvez consulter ceux des autres.</p>
+    {% endif %}
   {% endif %}
 {% endblock %}

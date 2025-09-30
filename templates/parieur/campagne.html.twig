@@ -11,8 +11,9 @@
     {% for p in phases %}
       <li>
         #{{ p.idPhaseCampagne }} — {{ p.ordre }} — {{ p.libelle }} — {{ p.typeLibelle }} — Limite: {{ p.dateheureLimite }} —
+        {% if (lockedByPhase[p.idPhaseCampagne] ?? false) %}<span title="verrouillé"> — 🔒</span>{% endif %}
         {% set closed = (p.dateheureLimite|date('U')) < ('now'|date('U')) %}
-        {% if closed %}
+        {% if closed or (lockedByPhase[p.idPhaseCampagne] ?? false) %}
           <em>Clôturé</em> — <a href="/parieur/phases/{{ p.idPhaseCampagne }}/resultats">Résultats</a>
         {% else %}
           <a href="/parieur/phases/{{ p.idPhaseCampagne }}/parier">Parier</a> — <span style="color:#999">Résultats après la date limite</span>

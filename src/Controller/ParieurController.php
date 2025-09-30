@@ -13,6 +13,7 @@ use App\Modele\AParierModele;
 use App\Modele\PariModele;
 use App\Modele\ReponsePariModele;
 use App\Modele\PhaseCalculPointModele;
+use App\Modele\PhaseParieurVerrouModele;
 
 final class ParieurController
 {
@@ -25,7 +26,8 @@ final class ParieurController
         private AParierModele $aParier = new AParierModele(),
         private PariModele $paris = new PariModele(),
         private ReponsePariModele $reponses = new ReponsePariModele(),
-        private PhaseCalculPointModele $phaseCalc = new PhaseCalculPointModele()
+        private PhaseCalculPointModele $phaseCalc = new PhaseCalculPointModele(),
+        private PhaseParieurVerrouModele $locks = new PhaseParieurVerrouModele()
     ) {}
 
     public function showPassword(Request $request, Response $response): Response
@@ -123,11 +125,25 @@ final class ParieurController
     {
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
         $enrolled = $this->inscriptions->listByUser($idUser);
+        // Compter les phases verrouillées par campagne pour l'utilisateur
+        $lockedByCampagne = [];
+        foreach ($enrolled as $c) {
+            $cid = (int)($c['idCampagnePari'] ?? 0);
+            $cnt = 0;
+            if ($cid > 0) {
+                foreach ($this->phases->findByCampagne($cid) as $p) {
+                    $pid = (int)($p['idPhaseCampagne'] ?? 0);
+                    if ($pid > 0 && $this->locks->isLocked($idUser, $pid)) { $cnt++; }
+                }
+            }
+            $lockedByCampagne[$cid] = $cnt;
+        }
         $available = $this->inscriptions->listNotEnrolled($idUser);
         $html = $this->twig->render('parieur/campagnes.html.twig', [
             'title' => 'Mes campagnes',
             'enrolled' => $enrolled,
             'available' => $available,
+            'lockedByCampagne' => $lockedByCampagne,
             'ok' => $_SESSION['flash_ok'] ?? null,
             'error' => $_SESSION['flash_error'] ?? null,
         ]);
@@ -151,10 +167,16 @@ final class ParieurController
         $campagne = $this->campagnes->findById($idCampagne);
         $phases = $this->phases->findByCampagne($idCampagne);
         $participants = $this->inscriptions->listUsersByCampagne($idCampagne);
+        $lockedByPhase = [];
+        foreach ($phases as $p) {
+            $pid = (int)($p['idPhaseCampagne'] ?? 0);
+            if ($pid > 0) { $lockedByPhase[$pid] = $this->locks->isLocked($idUser, $pid); }
+        }
         $html = $this->twig->render('parieur/campagne.html.twig', [
             'title' => 'Campagne — ' . ($campagne['libelle'] ?? ''),
             'campagne' => $campagne,
             'phases' => $phases,
+            'lockedByPhase' => $lockedByPhase,
             'participants' => $participants,
         ]);
         $response->getBody()->write($html);
@@ -260,6 +282,7 @@ final class ParieurController
         if (!empty($phase['dateheureLimite'])) {
             try { $closed = (new \DateTimeImmutable($phase['dateheureLimite'])) < (new \DateTimeImmutable('now')); } catch (\Throwable $e) { $closed = false; }
         }
+        $locked = $this->locks->isLocked($idUser, $idPhase);
         $html = $this->twig->render('parieur/parier.html.twig', [
             'title' => 'Placer des paris',
             'idPhase' => $idPhase,
@@ -269,6 +292,7 @@ final class ParieurController
             'labels' => $labels,
             'existing' => $existing,
             'closed' => $closed,
+            'locked' => $locked,
             'ok' => $_SESSION['flash_ok'] ?? null,
             'error' => $_SESSION['flash_error'] ?? null,
         ]);
@@ -295,6 +319,10 @@ final class ParieurController
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
+        if ($this->locks->isLocked($idUser, $idPhase)) {
+            $_SESSION['flash_error'] = 'Vous avez verrouillé vos paris pour cette phase. Modification impossible.';
+            return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
+        }
         $valuesByItem = [];
         foreach ($data as $k => $v) {
             if (preg_match('/^aparier_(\d+)_val_(\d+)$/', (string)$k, $m)) {
@@ -331,7 +359,8 @@ final class ParieurController
         if (!empty($phase['dateheureLimite'])) {
             try { $beforeLimit = (new \DateTimeImmutable($phase['dateheureLimite'])) > (new \DateTimeImmutable('now')); } catch (\Throwable $e) { $beforeLimit = false; }
         }
-        if ($beforeLimit) {
+        $locked = $this->locks->isLocked($idUser, $idPhase);
+        if ($beforeLimit && !$locked) {
             $_SESSION['flash_error'] = 'Les résultats seront visibles après la date limite.';
             return $response->withHeader('Location', '/parieur/campagnes/' . $idCampagne)->withStatus(302);
         }
@@ -427,12 +456,13 @@ final class ParieurController
         if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
-        // Interdire l'export avant la limite
+        // Interdire l'export avant la limite, sauf si verrouillage utilisateur
         $beforeLimit = false;
         if (!empty($phase['dateheureLimite'])) {
             try { $beforeLimit = (new \DateTimeImmutable($phase['dateheureLimite'])) > (new \DateTimeImmutable('now')); } catch (\Throwable $e) { $beforeLimit = false; }
         }
-        if ($beforeLimit) {
+        $locked = $this->locks->isLocked($idUser, $idPhase);
+        if ($beforeLimit && !$locked) {
             return $response->withHeader('Location', '/parieur/campagnes/' . $idCampagne)->withStatus(302);
         }
         $campagne = $this->campagnes->findById($idCampagne);
@@ -523,6 +553,10 @@ final class ParieurController
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
+        if ($this->locks->isLocked($idUser, $idPhase)) {
+            $_SESSION['flash_error'] = 'Vous avez verrouillé vos paris pour cette phase. Modification impossible.';
+            return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
+        }
         $valuesByItem = [];
         if (isset($data['paris']) && is_array($data['paris'])) {
             foreach ($data['paris'] as $idA => $vals) {
@@ -553,6 +587,30 @@ final class ParieurController
             $this->paris->placerValeurs($idUser, (int)$idA, $vals);
         }
         $_SESSION['flash_ok'] = 'Paris enregistrés';
+        return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
+    }
+
+    public function verrouiller(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $phase = $this->phases->findById($idPhase);
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase inconnue';
+            return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+        }
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expirée';
+            return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
+        }
+        $idUser = (int)($_SESSION['user']['id'] ?? 0);
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+        if ($idCampagne > 0 && !$this->inscriptions->estInscrit($idUser, $idCampagne)) {
+            $_SESSION['flash_error'] = 'Vous devez être inscrit à la campagne';
+            return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+        }
+        $this->locks->lock($idUser, $idPhase);
+        $_SESSION['flash_ok'] = 'Vos paris ont été verrouillés pour cette phase. Vous pouvez consulter ceux des autres.';
         return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
     }
 }

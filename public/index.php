@@ -173,6 +173,7 @@ $app->group('/parieur', function ($group) use ($parieur) {
     });
     $group->get('/phases/{idPhase}/parier', [$parieur, 'parier']);
     $group->post('/phases/{idPhase}/parier', [$parieur, 'placerTabulaire']);
+    $group->post('/phases/{idPhase}/verrouiller', [$parieur, 'verrouiller']);
     $group->get('/phases/{idPhase}/resultats', [$parieur, 'resultatsPhase']);
     $group->get('/phases/{idPhase}/resultats.csv', [$parieur, 'resultatsPhaseCsv']);
 })->add($requireRole('parieur'))->add($requireAuth);

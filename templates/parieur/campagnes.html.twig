@@ -8,7 +8,10 @@
   <ul>
     {% for c in enrolled %}
       <li>
-        {{ c.libelle }} <a href="/parieur/campagnes/{{ c.idCampagnePari }}" style="margin-left:.5rem">Voir</a>{% if c.gain is defined and c.gain is not null %}
+        {{ c.libelle }}
+        {% set lc = lockedByCampagne[c.idCampagnePari]|default(0) %}
+        {% if lc > 0 %}<span title="Phases verrouillées"> — 🔒 {{ lc }}</span>{% endif %}
+        <a href="/parieur/campagnes/{{ c.idCampagnePari }}" style="margin-left:.5rem">Voir</a>{% if c.gain is defined and c.gain is not null %}
           — Gain:
           <div style="white-space:pre-line">{{ c.gain|nl2br }}</div>
         {% endif %}
