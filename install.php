@@ -178,6 +178,12 @@ if (is_file($seed)) {
             $sql = preg_replace('/SET\s+NAMES\s+utf8mb4[^;]*;?/i', "SET NAMES utf8mb4 COLLATE $collation;", $sql);
             if ($before !== $sql) println("[DEBUG] SET NAMES harmonisé dans data.sql");
         }
+        // Harmoniser la collation des variables SQL (ex: @campagne)
+        $sql = preg_replace(
+            "/SET\s+@([A-Za-z0-9_]+)\s*:=\s*'([^']*)';/i",
+            "SET @\\1 := CONVERT('\\2' USING utf8mb4) COLLATE $collation;",
+            $sql
+        );
         // Patch de compat: certaines lignes peuvent omettre la liste de colonnes
         $sql = str_replace(
             "INSERT INTO `AParier` SELECT",
