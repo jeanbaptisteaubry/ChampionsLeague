@@ -42,19 +42,6 @@ final class ParieurController
         return $response;
     }
 
-    public function showPseudo(Request $request, Response $response): Response
-    {
-        $current = (string)($_SESSION['user']['pseudo'] ?? '');
-        $html = $this->twig->render('parieur/pseudo.html.twig', [
-            'title' => 'Changer le pseudo',
-            'current' => $current,
-            'ok' => $_SESSION['flash_ok'] ?? null,
-            'error' => $_SESSION['flash_error'] ?? null,
-        ]);
-        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
-        $response->getBody()->write($html);
-        return $response;
-    }
 
     public function updatePassword(Request $request, Response $response): Response
     {
