@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 declare(strict_types=1);
 
 namespace App\Controller;
@@ -66,7 +66,7 @@ final class AdminController
         return $response;
     }
 
-    public function saveHomeText(Request $request, Response $response): Response
+        public function saveHomeText(Request $request, Response $response): Response
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
@@ -74,12 +74,10 @@ final class AdminController
             return $response->withHeader('Location', '/admin/home-text')->withStatus(302);
         }
         $text = (string)($data['home_text'] ?? '');
-        (new \App\Modele\ParametreModele())->set('home_text', $text);
+        (new \App\Modele\ParametreModele())->set('home_text', sanitize_html($text));
         $_SESSION['flash_ok'] = 'Texte d\'accueil mis à jour';
         return $response->withHeader('Location', '/admin/home-text')->withStatus(302);
-    }
-
-    public function listUsers(Request $request, Response $response): Response
+    }\r\n\r\n    public function listUsers(Request $request, Response $response): Response
     {
         $users = $this->users->findAll();
         $html = $this->twig->render('admin/users.html.twig', [
@@ -93,7 +91,7 @@ final class AdminController
     public function newUserForm(Request $request, Response $response): Response
     {
         $html = $this->twig->render('admin/new_user.html.twig', [
-            'title' => 'Créer un parieur',
+            'title' => 'CrÃ©er un parieur',
             'error' => $_SESSION['flash_error'] ?? null,
             'ok' => $_SESSION['flash_ok'] ?? null,
         ]);
@@ -110,7 +108,7 @@ final class AdminController
 
         // CSRF
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée. Veuillez réessayer.';
+            $_SESSION['flash_error'] = 'Session expirÃ©e. Veuillez rÃ©essayer.';
             return $response->withHeader('Location', '/admin/users/new')->withStatus(302);
         }
 
@@ -126,7 +124,7 @@ final class AdminController
             $userId = $this->users->createWithoutPassword($pseudo, $mail, $idType);
             $token = $this->userTokens->create($userId, 'activation', 48);
             $this->sendActivationEmail($request, $mail, $pseudo, $token);
-            $_SESSION['flash_ok'] = 'Utilisateur créé. Un email d\'activation a été envoyé.';
+            $_SESSION['flash_ok'] = 'Utilisateur crÃ©Ã©. Un email d\'activation a Ã©tÃ© envoyÃ©.';
         } catch (\PDOException $e) {
             $_SESSION['flash_error'] = 'Erreur: ' . $e->getMessage();
         }
@@ -138,7 +136,7 @@ final class AdminController
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée. Veuillez réessayer.';
+            $_SESSION['flash_error'] = 'Session expirÃ©e. Veuillez rÃ©essayer.';
             return $response->withHeader('Location', '/admin/users')->withStatus(302);
         }
         $id = (int)($args['id'] ?? 0);
@@ -146,15 +144,15 @@ final class AdminController
         $user = $this->users->findById($id);
         if (!$user) { $_SESSION['flash_error'] = 'Utilisateur introuvable'; return $response->withHeader('Location', '/admin/users')->withStatus(302); }
         if (!empty($user['motDePasseHasch'])) {
-            $_SESSION['flash_error'] = 'Utilisateur déjà activé';
+            $_SESSION['flash_error'] = 'Utilisateur dÃ©jÃ  activÃ©';
             return $response->withHeader('Location', '/admin/users')->withStatus(302);
         }
         try {
             $token = $this->userTokens->create($id, 'activation', 48);
             $this->sendActivationEmail($request, $user['mail'], $user['pseudo'], $token);
-            $_SESSION['flash_ok'] = 'Invitation renvoyée';
+            $_SESSION['flash_ok'] = 'Invitation renvoyÃ©e';
         } catch (\Throwable $e) {
-            $_SESSION['flash_error'] = 'Échec de l\'envoi de l\'invitation';
+            $_SESSION['flash_error'] = 'Ã‰chec de l\'envoi de l\'invitation';
         }
         return $response->withHeader('Location', '/admin/users')->withStatus(302);
     }
@@ -169,12 +167,12 @@ final class AdminController
         $link = $base . '/account/activate/' . $token;
 
         $html = '<p>Bonjour ' . htmlspecialchars($pseudo) . ',</p>' .
-            '<p>Votre compte a été créé. Cliquez sur le lien suivant pour définir votre mot de passe:</p>' .
+            '<p>Votre compte a Ã©tÃ© crÃ©Ã©. Cliquez sur le lien suivant pour dÃ©finir votre mot de passe:</p>' .
             '<p><a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>' .
             '<p>Ce lien expire dans 48h.</p>';
         $text = "Bonjour $pseudo,\nActivez votre compte: $link\n(Lien valable 48h).";
         if (!Mailer::send($toEmail, $pseudo, 'Activation de votre compte', $html, $text)) {
-            error_log('[AdminController] Echec envoi email activation à ' . $toEmail);
+            error_log('[AdminController] Echec envoi email activation Ã  ' . $toEmail);
         }
     }
 
@@ -198,15 +196,15 @@ final class AdminController
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
         }
         $lib = trim($data['libelle'] ?? '');
         $desc = trim($data['description'] ?? '');
-        if ($lib === '') { $_SESSION['flash_error'] = 'Libellé requis'; }
+        if ($lib === '') { $_SESSION['flash_error'] = 'LibellÃ© requis'; }
         else {
             $this->campagnes->create($lib, $desc ?: null);
-            $_SESSION['flash_ok'] = 'Campagne créée';
+            $_SESSION['flash_ok'] = 'Campagne crÃ©Ã©e';
         }
         return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
     }
@@ -216,7 +214,7 @@ final class AdminController
         $idCampagne = (int)($args['idCampagne'] ?? 0);
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
         }
         $count = $this->inscriptions->countByCampagne($idCampagne);
@@ -227,11 +225,11 @@ final class AdminController
         $gainText = trim((string)($data['gain'] ?? ''));
         if ($gainText === '') { $gainText = null; }
         if ($gainText !== null && mb_strlen($gainText) > 2000) {
-            $_SESSION['flash_error'] = 'Le gain ne doit pas dépasser 2000 caractères';
+            $_SESSION['flash_error'] = 'Le gain ne doit pas dÃ©passer 2000 caractÃ¨res';
             return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
         }
         $this->campagnes->setGain($idCampagne, $gainText);
-        $_SESSION['flash_ok'] = 'Gain mis à jour';
+        $_SESSION['flash_ok'] = 'Gain mis Ã  jour';
         return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
     }
 
@@ -268,16 +266,16 @@ final class AdminController
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', '/admin/types')->withStatus(302);
         }
         $lib = trim($data['libelle'] ?? '');
         $nb = (int)($data['nbValeurParPari'] ?? 1);
         $labels = array_filter(array_map('trim', explode(',', (string)($data['labels'] ?? ''))));
-        if ($lib === '' || $nb <= 0) { $_SESSION['flash_error'] = 'Libellé et nb requis'; }
+        if ($lib === '' || $nb <= 0) { $_SESSION['flash_error'] = 'LibellÃ© et nb requis'; }
         else {
             $this->typePhase->create($lib, $nb, $labels);
-            $_SESSION['flash_ok'] = 'Type de phase créé';
+            $_SESSION['flash_ok'] = 'Type de phase crÃ©Ã©';
         }
         return $response->withHeader('Location', '/admin/types')->withStatus(302);
     }
@@ -286,17 +284,17 @@ final class AdminController
     {
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', '/admin/types')->withStatus(302);
         }
         $id = (int)($args['idType'] ?? 0);
         if ($id <= 0) { $_SESSION['flash_error'] = 'ID invalide'; return $response->withHeader('Location', '/admin/types')->withStatus(302); }
         $count = $this->typePhase->countUsage($id);
         if ($count > 0) {
-            $_SESSION['flash_error'] = 'Impossible de supprimer: type utilisé par au moins une phase';
+            $_SESSION['flash_error'] = 'Impossible de supprimer: type utilisÃ© par au moins une phase';
         } else {
             $this->typePhase->delete($id);
-            $_SESSION['flash_ok'] = 'Type supprimé';
+            $_SESSION['flash_ok'] = 'Type supprimÃ©';
         }
         return $response->withHeader('Location', '/admin/types')->withStatus(302);
     }
@@ -329,7 +327,7 @@ final class AdminController
         $data = (array)($request->getParsedBody() ?? []);
         $idCampagne = (int)$args['idCampagne'];
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/admin/campagnes/$idCampagne/phases")->withStatus(302);
         }
         $idType = (int)($data['idTypePhase'] ?? 0);
@@ -344,7 +342,7 @@ final class AdminController
         if ($idType <= 0 || $lib === '' || $lim === '') { $_SESSION['flash_error'] = 'Champs requis'; }
         else {
             $this->phases->create($idCampagne, $idType, $ordre, $lib, $lim);
-            $_SESSION['flash_ok'] = 'Phase créée';
+            $_SESSION['flash_ok'] = 'Phase crÃ©Ã©e';
         }
         return $response->withHeader('Location', "/admin/campagnes/$idCampagne/phases")->withStatus(302);
     }
@@ -380,7 +378,7 @@ final class AdminController
         $idPhase = (int)$args['idPhase'];
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/admin/phases/$idPhase/calculs")->withStatus(302);
         }
         $idType = (int)($data['idTypeResultat'] ?? 0);
@@ -389,7 +387,7 @@ final class AdminController
             $_SESSION['flash_error'] = 'Type et nb de points requis';
         } else {
             $this->phaseCalc->upsert($idPhase, $idType, $nb);
-            $_SESSION['flash_ok'] = 'Calcul ajouté/mis à jour';
+            $_SESSION['flash_ok'] = 'Calcul ajoutÃ©/mis Ã  jour';
         }
         return $response->withHeader('Location', "/admin/phases/$idPhase/calculs")->withStatus(302);
     }
@@ -400,11 +398,11 @@ final class AdminController
         $idPc = (int)$args['idPc'];
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/admin/phases/$idPhase/calculs")->withStatus(302);
         }
         $this->phaseCalc->delete($idPc);
-        $_SESSION['flash_ok'] = 'Calcul supprimé';
+        $_SESSION['flash_ok'] = 'Calcul supprimÃ©';
         return $response->withHeader('Location', "/admin/phases/$idPhase/calculs")->withStatus(302);
     }
 
@@ -413,7 +411,7 @@ final class AdminController
         $data = (array)($request->getParsedBody() ?? []);
         $idPhase = (int)($args['idPhase'] ?? 0);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             // We need campagne ID to redirect; try to fetch phase
             $ph = $this->phases->findById($idPhase);
             $idCampagne = (int)($ph['idCampagnePari'] ?? 0);
@@ -424,15 +422,15 @@ final class AdminController
         $idCampagne = (int)$ph['idCampagnePari'];
         $count = $this->aParier->countByPhase($idPhase);
         if ($count > 0) {
-            $_SESSION['flash_error'] = 'Impossible de supprimer: des éléments à parier existent';
+            $_SESSION['flash_error'] = 'Impossible de supprimer: des Ã©lÃ©ments Ã  parier existent';
         } else {
             $this->phases->delete($idPhase);
-            $_SESSION['flash_ok'] = 'Phase supprimée';
+            $_SESSION['flash_ok'] = 'Phase supprimÃ©e';
         }
         return $response->withHeader('Location', "/admin/campagnes/$idCampagne/phases")->withStatus(302);
     }
 
-    // Éléments à parier
+    // Ã‰lÃ©ments Ã  parier
     public function listAParier(Request $request, Response $response, array $args): Response
     {
         $idPhase = (int)$args['idPhase'];
@@ -440,7 +438,7 @@ final class AdminController
         $campagne = $phase ? $this->campagnes->findById((int)$phase['idCampagnePari']) : null;
         $type = $phase ? $this->typePhase->findById((int)$phase['idTypePhase']) : null;
         $items = $this->aParier->findByPhase($idPhase);
-        // Préparer labels et résultats existants
+        // PrÃ©parer labels et rÃ©sultats existants
         $labels = [];
         $nb = 1;
         if ($type) {
@@ -458,7 +456,7 @@ final class AdminController
             }
         }
         $html = $this->twig->render('admin/a_parier.html.twig', [
-            'title' => 'Éléments à parier',
+            'title' => 'Ã‰lÃ©ments Ã  parier',
             'phase' => $phase,
             'campagne' => $campagne,
             'type' => $type,
@@ -479,7 +477,7 @@ final class AdminController
         $idPhase = (int)$args['idPhase'];
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/admin/phases/$idPhase/a-parier")->withStatus(302);
         }
         $lib = trim((string)($data['libellePari'] ?? ''));
@@ -510,20 +508,20 @@ final class AdminController
         }
 
         if ($count > 0) {
-            $_SESSION['flash_ok'] = $count . ' élément(s) ajouté(s)';
+            $_SESSION['flash_ok'] = $count . ' Ã©lÃ©ment(s) ajoutÃ©(s)';
         } elseif (empty($_SESSION['flash_error'])) {
-            $_SESSION['flash_error'] = 'Veuillez saisir un libellé ou des lignes.';
+            $_SESSION['flash_error'] = 'Veuillez saisir un libellÃ© ou des lignes.';
         }
         return $response->withHeader('Location', "/admin/phases/$idPhase/a-parier")->withStatus(302);
     }
 
-    // Résultats
+    // RÃ©sultats
     public function setResultats(Request $request, Response $response, array $args): Response
     {
         $idAParier = (int)$args['idAParier'];
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/admin/a-parier/$idAParier/resultats")->withStatus(302);
         }
         foreach ($data as $key => $value) {
@@ -532,7 +530,7 @@ final class AdminController
                 $this->reponses->setResult($idAParier, $num, (string)$value);
             }
         }
-        $_SESSION['flash_ok'] = 'Résultats enregistrés';
+        $_SESSION['flash_ok'] = 'RÃ©sultats enregistrÃ©s';
         return $response->withHeader('Location', "/admin/a-parier/$idAParier/resultats")->withStatus(302);
     }
 
@@ -541,7 +539,7 @@ final class AdminController
         $idPhase = (int)($args['idPhase'] ?? 0);
         $data = (array)($request->getParsedBody() ?? []);
         if (!csrf_validate($data['_csrf'] ?? null)) {
-            $_SESSION['flash_error'] = 'Session expirée';
+            $_SESSION['flash_error'] = 'Session expirÃ©e';
             return $response->withHeader('Location', "/admin/phases/$idPhase/a-parier")->withStatus(302);
         }
         $res = $data['res'] ?? [];
@@ -557,7 +555,11 @@ final class AdminController
                 }
             }
         }
-        $_SESSION['flash_ok'] = 'Résultats enregistrés';
+        $_SESSION['flash_ok'] = 'RÃ©sultats enregistrÃ©s';
         return $response->withHeader('Location', "/admin/phases/$idPhase/a-parier")->withStatus(302);
     }
 }
+
+
+
+
