@@ -18,7 +18,7 @@ final class HomeController
         $param = new \App\Modele\ParametreModele();
         $homeText = $param->get('home_text') ?? '';
         $html = $this->twig->render('home.html.twig', [
-            'title' => 'Accueil',
+            'title' => 'Parions !',
             'homeText' => $homeText,
         ]);
         $response->getBody()->write($html);
