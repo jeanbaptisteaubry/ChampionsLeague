@@ -223,9 +223,8 @@ final class ParieurController
             }
             $calc = $this->phaseCalc->listByPhase($idPhase);
 
-            // Nb valeurs pour ce type
-            $type = (new \App\Modele\TypePhaseModele())->findById((int)$p['idTypePhase']);
-            $nb = max(1, (int)($type['nbValeurParPari'] ?? 1));
+            // Nb valeurs pour ce type (déjà présent via la jointure dans findByCampagne)
+            $nb = max(1, (int)($p['nbValeurParPari'] ?? 1));
 
             foreach ($participants as $u) {
                 $uid = (int)$u['idUtilisateur'];
