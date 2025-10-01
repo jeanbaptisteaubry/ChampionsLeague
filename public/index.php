@@ -131,6 +131,8 @@ $app->add(function (Request $request, RequestHandler $handler) use ($responseFac
 // Admin area
 $app->group('/admin', function ($group) use ($admin, $aParierModel) {
     $group->get('', [$admin, 'home']);
+    $group->get('/home-text', [$admin, 'showHomeText']);
+    $group->post('/home-text', [$admin, 'saveHomeText']);
     // Campagnes
     $group->get('/campagnes', [$admin, 'listCampagnes']);
     $group->post('/campagnes', [$admin, 'createCampagne']);

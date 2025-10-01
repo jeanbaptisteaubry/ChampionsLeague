@@ -38,11 +38,45 @@ final class AdminController
 
     public function home(Request $request, Response $response): Response
     {
+        $param = new \App\Modele\ParametreModele();
+        $homeText = $param->get('home_text') ?? '';
         $html = $this->twig->render('admin/home.html.twig', [
             'title' => 'Espace administrateur',
+            'homeText' => $homeText,
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
         ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
         $response->getBody()->write($html);
         return $response;
+    }
+
+    public function showHomeText(Request $request, Response $response): Response
+    {
+        $param = new \App\Modele\ParametreModele();
+        $homeText = $param->get('home_text') ?? '';
+        $html = $this->twig->render('admin/home_text.html.twig', [
+            'title' => 'Texte d\'accueil',
+            'homeText' => $homeText,
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
+        ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function saveHomeText(Request $request, Response $response): Response
+    {
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expirée';
+            return $response->withHeader('Location', '/admin/home-text')->withStatus(302);
+        }
+        $text = (string)($data['home_text'] ?? '');
+        (new \App\Modele\ParametreModele())->set('home_text', $text);
+        $_SESSION['flash_ok'] = 'Texte d\'accueil mis à jour';
+        return $response->withHeader('Location', '/admin/home-text')->withStatus(302);
     }
 
     public function listUsers(Request $request, Response $response): Response

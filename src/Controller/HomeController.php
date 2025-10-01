@@ -15,9 +15,11 @@ final class HomeController
 
     public function index(Request $request, Response $response): Response
     {
-        $html = $this->twig->render('hello.html.twig', [
-            'title' => 'Slim + Twig (Controller)',
-            'name'  => 'Champions League',
+        $param = new \App\Modele\ParametreModele();
+        $homeText = $param->get('home_text') ?? '';
+        $html = $this->twig->render('home.html.twig', [
+            'title' => 'Accueil',
+            'homeText' => $homeText,
         ]);
         $response->getBody()->write($html);
         return $response;
@@ -34,4 +36,3 @@ final class HomeController
         return $response;
     }
 }
-

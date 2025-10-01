@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Accueil</h1>
+  {% if homeText %}
+    <div style="white-space:pre-line">{{ homeText|e }}</div>
+  {% else %}
+    <p>Bienvenue !</p>
+  {% endif %}
+{% endblock %}
+

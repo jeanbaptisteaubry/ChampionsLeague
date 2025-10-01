@@ -2,8 +2,12 @@
 {% block body %}
   <h1>Espace administrateur</h1>
   <p>Bienvenue dans l'espace administrateur.</p>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  <p>
+    <a href="/admin/home-text">Configurer le texte d'accueil</a>
+  </p>
   <ul>
     <li><a href="/admin/users/new">Créer un utilisateur parieur</a></li>
   </ul>
 {% endblock %}
-

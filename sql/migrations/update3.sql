@@ -1,0 +1,8 @@
+-- Paramètres globaux (clé/valeur)
+CREATE TABLE IF NOT EXISTS `Parametre` (
+  `cle` VARCHAR(100) NOT NULL,
+  `valeur` TEXT NOT NULL,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`cle`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
