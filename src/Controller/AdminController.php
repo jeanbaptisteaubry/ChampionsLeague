@@ -77,7 +77,8 @@ final class AdminController
         (new \App\Modele\ParametreModele())->set('home_text', sanitize_html($text));
         $_SESSION['flash_ok'] = 'Texte d\'accueil mis à jour';
         return $response->withHeader('Location', '/admin/home-text')->withStatus(302);
-    }\r\n\r\n    public function listUsers(Request $request, Response $response): Response
+    }
+    public function listUsers(Request $request, Response $response): Response
     {
         $users = $this->users->findAll();
         $html = $this->twig->render('admin/users.html.twig', [
@@ -559,6 +560,7 @@ final class AdminController
         return $response->withHeader('Location', "/admin/phases/$idPhase/a-parier")->withStatus(302);
     }
 }
+
 
 
 
