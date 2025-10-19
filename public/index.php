@@ -16,6 +16,7 @@ use App\View\TwigFactory;
 use App\Controller\AuthController;
 use App\Controller\HomeController;
 use App\Controller\AdminController;
+use App\Controller\AdminReminderController;
 use App\Controller\ParieurController;
 use App\Modele\UtilisateurModele;
 use App\Modele\TypeUtilisateurModele;
@@ -65,6 +66,7 @@ $reponseModel = new ReponsePariModele();
 $home = new HomeController($twig);
 $auth = new AuthController($twig, $userModel, $typeModel, new UtilisateurTokenModele());
 $admin = new AdminController($twig, $userModel, $typeModel, $campagneModel, $typePhaseModel, $phaseModel, $aParierModel, $reponseModel);
+$adminReminder = new AdminReminderController($twig, $campagneModel, $phaseModel);
 $parieur = new ParieurController($twig, $userModel);
 
 // Routes (groupées par contrôleur / use case)
@@ -164,6 +166,15 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel) {
     $group->get('/phases/{idPhase}/a-parier', [$admin, 'listAParier']);
     $group->post('/phases/{idPhase}/a-parier', [$admin, 'createAParier']);
     $group->post('/phases/{idPhase}/a-parier/resultats', [$admin, 'setResultatsBatch']);
+    // Rappels par email (manuel)
+    $group->post('/phases/{idPhase}/reminder', [$adminReminder, 'sendReminderPhase']);
+    $group->get('/phases/{idPhase}/reminder', function ($request, $response, $args) use ($phaseModel) {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $ph = $idPhase > 0 ? $phaseModel->findById($idPhase) : null;
+        $idCampagne = (int)($ph['idCampagnePari'] ?? 0);
+        $target = $idCampagne > 0 ? '/admin/campagnes/' . $idCampagne . '/phases' : '/admin/campagnes';
+        return $response->withHeader('Location', $target)->withStatus(302);
+    });
     // Résultats
     $group->post('/a-parier/{idAParier}/resultats', [$admin, 'setResultats']);
     $group->get('/a-parier/{idAParier}/resultats', function ($request, $response, $args) use ($aParierModel) {
