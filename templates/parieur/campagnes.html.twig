@@ -10,15 +10,19 @@
       <li>
         {{ c.libelle }}
         {% set lc = lockedByCampagne[c.idCampagnePari]|default(0) %}
-        {% if lc > 0 %}<span title="Phases verrouillées"> — 🔒 {{ lc }}</span>{% endif %}
-        <a href="/parieur/campagnes/{{ c.idCampagnePari }}" style="margin-left:.5rem">Voir</a>{% if c.gain is defined and c.gain is not null %}
+        {% if lc > 0 %}<span title="Phases verrouillées"> 🔒 {{ lc }}</span>{% endif %}
+        <a href="/parieur/campagnes/{{ c.idCampagnePari }}" style="margin-left:.75rem; display:inline-block; padding:.4rem .75rem; border:1px solid #0a57; border-radius:6px; text-decoration:none; background:#eaf8ff; color:#003;">Voir</a>
+        {% if c.gain is defined and c.gain is not null %}
           — Gain:
           <div style="white-space:pre-line">{{ c.gain|nl2br }}</div>
         {% endif %}
-        <form method="post" action="/parieur/campagnes/{{ c.idCampagnePari }}/desinscrire" style="display:inline" onsubmit="return confirm('Se désinscrire de cette campagne ?');">
-          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
-          <button>Désinscrire</button>
-        </form>
+        {% set can = canUnsubscribe[c.idCampagnePari]|default(true) %}
+        {% if can %}
+          <form method="post" action="/parieur/campagnes/{{ c.idCampagnePari }}/desinscrire" style="display:inline" onsubmit="return confirm('Se désinscrire de cette campagne ?');">
+            <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+            <button style="margin-left:.5rem">Se désinscrire</button>
+          </form>
+        {% endif %}
       </li>
     {% else %}
       <li>Aucune</li>
@@ -32,7 +36,9 @@
     <form method="post" action="/parieur/campagnes">
       <input type="hidden" name="_csrf" value="{{ app.csrf }}">
       <select name="idCampagnePari">
-        {% for c in available %}<option value="{{ c.idCampagnePari }}">{{ c.libelle }}{% if c.gain is defined and c.gain is not null %} — Gain: {{ c.gain|replace({'\n':' '}) }}{% endif %}</option>{% endfor %}
+        {% for c in available %}
+          <option value="{{ c.idCampagnePari }}">{{ c.libelle }}{% if c.gain is defined and c.gain is not null %} — Gain: {{ c.gain|replace({'\n':' '}) }}{% endif %}</option>
+        {% endfor %}
       </select>
       <button>S'inscrire</button>
     </form>

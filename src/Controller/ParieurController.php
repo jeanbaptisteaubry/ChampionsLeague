@@ -128,6 +128,7 @@ final class ParieurController
         $enrolled = $this->inscriptions->listByUser($idUser);
         // Compter les phases verrouillÃ©es par campagne pour l'utilisateur
         $lockedByCampagne = [];
+        $canUnsubscribe = [];
         foreach ($enrolled as $c) {
             $cid = (int)($c['idCampagnePari'] ?? 0);
             $cnt = 0;
@@ -136,6 +137,8 @@ final class ParieurController
                     $pid = (int)($p['idPhaseCampagne'] ?? 0);
                     if ($pid > 0 && $this->locks->isLocked($idUser, $pid)) { $cnt++; }
                 }
+                // Désinscription autorisée uniquement s'il n'existe aucun pari sur la campagne
+                $canUnsubscribe[$cid] = ($this->paris->countByUserAndCampagne($idUser, $cid) === 0);
             }
             $lockedByCampagne[$cid] = $cnt;
         }
@@ -145,6 +148,7 @@ final class ParieurController
             'enrolled' => $enrolled,
             'available' => $available,
             'lockedByCampagne' => $lockedByCampagne,
+            'canUnsubscribe' => $canUnsubscribe,
             'ok' => $_SESSION['flash_ok'] ?? null,
             'error' => $_SESSION['flash_error'] ?? null,
         ]);
@@ -219,9 +223,8 @@ final class ParieurController
             }
             $calc = $this->phaseCalc->listByPhase($idPhase);
 
-            // Nb valeurs pour ce type
-            $type = (new \App\Modele\TypePhaseModele())->findById((int)$p['idTypePhase']);
-            $nb = max(1, (int)($type['nbValeurParPari'] ?? 1));
+            // Nb valeurs pour ce type (déjà présent via la jointure dans findByCampagne)
+            $nb = max(1, (int)($p['nbValeurParPari'] ?? 1));
 
             foreach ($participants as $u) {
                 $uid = (int)$u['idUtilisateur'];
