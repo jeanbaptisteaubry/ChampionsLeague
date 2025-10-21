@@ -28,6 +28,10 @@
           <input type="hidden" name="_csrf" value="{{ app.csrf }}">
           <button>Envoyer rappel</button>
         </form>
+        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/recap" style="display:inline" onsubmit="return confirm('Envoyer le récapitulatif (tableau) à tous les inscrits ?');">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <button>Envoyer récapitulatif</button>
+        </form>
         {% if count == 0 %}
           <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/delete" style="display:inline" onsubmit="return confirm('Supprimer cette phase ?');">
             <input type="hidden" name="_csrf" value="{{ app.csrf }}">

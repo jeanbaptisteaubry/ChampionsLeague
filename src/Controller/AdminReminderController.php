@@ -8,6 +8,7 @@ use App\Modele\InscriptionPariModele;
 use App\Modele\PhaseCampagneModele;
 use App\Modele\PhaseParieurVerrouModele;
 use App\Service\Mailer;
+use App\Service\PhaseMailer;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -104,5 +105,31 @@ final class AdminReminderController
 
         return $response->withHeader('Location', "/admin/campagnes/$idCampagne/phases")->withStatus(302);
     }
-}
 
+    public function sendRecapPhase(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expirée';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $phase = $this->phases->findById($idPhase);
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+
+        [$sent, $failed] = PhaseMailer::sendPhaseSummaryToAll($request, $this->twig, $idPhase);
+        if ($sent > 0) {
+            $_SESSION['flash_ok'] = 'Récapitulatif envoyé à ' . $sent . ' destinataire(s)';
+            if ($failed > 0) { $_SESSION['flash_ok'] .= ' (' . $failed . ' échec(s))'; }
+        } else {
+            $_SESSION['flash_error'] = 'Aucun email envoyé (aucun inscrit ?)';
+        }
+
+        return $response->withHeader('Location', "/admin/campagnes/$idCampagne/phases")->withStatus(302);
+    }
+}

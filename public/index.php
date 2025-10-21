@@ -166,9 +166,17 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel, $adminRemind
     $group->get('/phases/{idPhase}/a-parier', [$admin, 'listAParier']);
     $group->post('/phases/{idPhase}/a-parier', [$admin, 'createAParier']);
     $group->post('/phases/{idPhase}/a-parier/resultats', [$admin, 'setResultatsBatch']);
-    // Rappels par email (manuel)
+    // Rappels / Récapitulatif par email (manuel)
     $group->post('/phases/{idPhase}/reminder', [$adminReminder, 'sendReminderPhase']);
     $group->get('/phases/{idPhase}/reminder', function ($request, $response, $args) use ($phaseModel) {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $ph = $idPhase > 0 ? $phaseModel->findById($idPhase) : null;
+        $idCampagne = (int)($ph['idCampagnePari'] ?? 0);
+        $target = $idCampagne > 0 ? '/admin/campagnes/' . $idCampagne . '/phases' : '/admin/campagnes';
+        return $response->withHeader('Location', $target)->withStatus(302);
+    });
+    $group->post('/phases/{idPhase}/recap', [$adminReminder, 'sendRecapPhase']);
+    $group->get('/phases/{idPhase}/recap', function ($request, $response, $args) use ($phaseModel) {
         $idPhase = (int)($args['idPhase'] ?? 0);
         $ph = $idPhase > 0 ? $phaseModel->findById($idPhase) : null;
         $idCampagne = (int)($ph['idCampagnePari'] ?? 0);

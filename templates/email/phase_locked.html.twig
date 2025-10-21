@@ -1,0 +1,65 @@
+<div style="font-family:Arial,Helvetica,sans-serif; font-size:14px; color:#222">
+  <p>Bonjour {{ recipient|default('') }},</p>
+  <p>
+    Tous les paris sont désormais <strong>verrouillés</strong> pour la phase
+    « {{ phase.libelle }} »{% if campagne.libelle is defined and campagne.libelle %} de la campagne « {{ campagne.libelle }} »{% endif %}.
+  </p>
+  <p>Voici le récapitulatif :</p>
+
+  <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; max-width:1000px">
+    <thead>
+      <tr>
+        <th style="text-align:left">À parier</th>
+        <th style="text-align:center">Résultat officiel</th>
+        {% for u in participants %}
+          <th style="text-align:center">{{ u.pseudo }}</th>
+        {% endfor %}
+        <th style="text-align:center">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for it in items %}
+      <tr>
+        <td>{{ it.libellePari }}</td>
+        {% set o = official[it.idAParier] ?? {} %}
+        {% set hasOff = (o[1] is defined or o[2] is defined) %}
+        <td style="text-align:center; color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} — {% endif %}{{ o[2]|default('') }}</td>
+        {% for u in participants %}
+          {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
+          {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}
+          {% set style = '' %}
+          {% if bet %}
+            {% if not hasOff %}
+              {% set style = 'background:#f6f6f6;color:#999' %}
+            {% elseif pts > 0 %}
+              {% set style = 'background:#e6ffe6' %}
+            {% else %}
+              {% set style = 'background:#ffecec' %}
+            {% endif %}
+          {% endif %}
+          <td style="text-align:center; {{ style }}">{{ bet }}{% if bet %}<br><strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
+        {% endfor %}
+        <td></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="{{ 3 + participants|length }}">Aucun élément à parier</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="2" style="text-align:right">Total points</th>
+        {% for u in participants %}
+          <th style="text-align:center">{{ totals[u.idUtilisateur]|default(0) }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </tfoot>
+  </table>
+
+  <p style="margin-top:12px">
+    Vous pouvez aussi consulter ce récapitulatif en ligne :
+    <a href="{{ resultLink }}">{{ resultLink }}</a>
+  </p>
+  <p>Bonne chance à tous !</p>
+</div>
+
