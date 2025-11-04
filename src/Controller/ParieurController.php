@@ -14,6 +14,8 @@ use App\Modele\PariModele;
 use App\Modele\ReponsePariModele;
 use App\Modele\PhaseCalculPointModele;
 use App\Modele\PhaseParieurVerrouModele;
+use App\Modele\ParametreModele;
+use App\Service\PhaseMailer;
 
 final class ParieurController
 {
@@ -422,6 +424,30 @@ final class ParieurController
             $this->paris->placerValeurs($idUser, (int)$idA, $vals);
         }
         $_SESSION['flash_ok'] = 'Paris enregistrÃ©s';
+        // Détection du dernier verrouillage: envoyer le récapitulatif une seule fois
+        try {
+            $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+            if ($idCampagne > 0) {
+                $totalInscrits = $this->inscriptions->countByCampagne($idCampagne);
+                $nbVerrou = $this->locks->countByPhase($idPhase);
+                if ($totalInscrits > 0 && $nbVerrou >= $totalInscrits) {
+                    $flagKey = 'phase_all_locked_notified_' . $idPhase;
+                    $param = new ParametreModele();
+                    $already = $param->get($flagKey);
+                    if ($already === null) {
+                        [$sent, $failed] = PhaseMailer::sendPhaseSummaryToAll($request, $this->twig, $idPhase);
+                        // Marquer pour éviter les envois multiples
+                        $param->set($flagKey, '1');
+                        if ($sent > 0) {
+                            $_SESSION['flash_ok'] .= ' Un récapitulatif a été envoyé par email.';
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('[ParieurController] recap email error: ' . $e->getMessage());
+        }
+
         return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
     }
 

@@ -23,7 +23,15 @@
       {% set count = (apCounts[p.idPhaseCampagne] ?? 0) %}
       <li>#{{ p.idPhaseCampagne }} — {{ p.ordre }} — {{ p.libelle }} — {{ p.typeLibelle }} — Limite: {{ p.dateheureLimite }} —
         <a href="/admin/phases/{{ p.idPhaseCampagne }}/a-parier">Gérer AParier</a> —
-        <a href="/admin/phases/{{ p.idPhaseCampagne }}/calculs">Calculs de points</a>
+        <a href="/admin/phases/{{ p.idPhaseCampagne }}/calculs">Calculs de points</a> —
+        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/reminder" style="display:inline" onsubmit="return confirm('Envoyer un email de rappel à tous les inscrits non verrouillés ?');">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <button>Envoyer rappel</button>
+        </form>
+        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/recap" style="display:inline" onsubmit="return confirm('Envoyer le récapitulatif (tableau) à tous les inscrits ?');">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <button>Envoyer récapitulatif</button>
+        </form>
         {% if count == 0 %}
           <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/delete" style="display:inline" onsubmit="return confirm('Supprimer cette phase ?');">
             <input type="hidden" name="_csrf" value="{{ app.csrf }}">

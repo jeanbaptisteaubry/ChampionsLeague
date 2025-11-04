@@ -14,6 +14,8 @@ use App\Modele\TypeResultatModele;
 use App\Modele\PhaseCalculPointModele;
 use App\Modele\InscriptionPariModele;
 use App\Modele\UtilisateurTokenModele;
+use App\Modele\PhaseParieurVerrouModele;
+use App\Modele\PariModele;
 use App\Service\Mailer;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;

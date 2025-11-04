@@ -26,5 +26,11 @@ final class PhaseParieurVerrouModele
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':u' => $idParieur, ':p' => $idPhaseCampagne]);
     }
-}
 
+    public function countByPhase(int $idPhaseCampagne): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `PhaseParieurVerrou` WHERE `idPhaseCampagne` = :p');
+        $stmt->execute([':p' => $idPhaseCampagne]);
+        return (int)$stmt->fetchColumn();
+    }
+}
