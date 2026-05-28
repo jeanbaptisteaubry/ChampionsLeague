@@ -79,9 +79,9 @@ final class AuthController
     public function campaignAccess(Request $request, Response $response, array $args): Response
     {
         $token = (string)($args['token'] ?? '');
-        $row = $this->tokens->findUnusedAnyType($token);
+        $row = $this->tokens->findAnyType($token);
         if (!$row || !preg_match('/^campagne_(\d+)$/', (string)($row['type'] ?? ''), $m)) {
-            $_SESSION['flash_error'] = 'Lien invalide ou deja utilise';
+            $_SESSION['flash_error'] = 'Lien invalide';
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
@@ -104,7 +104,6 @@ final class AuthController
             'idTypeUtilisateur' => (int)$user['idTypeUtilisateur'],
             'typeLibelle' => $type['libelle'] ?? null,
         ];
-        $this->tokens->markUsed((int)$row['idToken']);
 
         return $response->withHeader('Location', '/parieur/campagnes/' . (int)$m[1])->withStatus(302);
     }
@@ -112,9 +111,9 @@ final class AuthController
     public function phaseAccess(Request $request, Response $response, array $args): Response
     {
         $token = (string)($args['token'] ?? '');
-        $row = $this->tokens->findUnusedAnyType($token);
+        $row = $this->tokens->findAnyType($token);
         if (!$row || !preg_match('/^phase_(\d+)$/', (string)($row['type'] ?? ''), $m)) {
-            $_SESSION['flash_error'] = 'Lien invalide ou deja utilise';
+            $_SESSION['flash_error'] = 'Lien invalide';
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
@@ -137,7 +136,6 @@ final class AuthController
             'idTypeUtilisateur' => (int)$user['idTypeUtilisateur'],
             'typeLibelle' => $type['libelle'] ?? null,
         ];
-        $this->tokens->markUsed((int)$row['idToken']);
 
         return $response->withHeader('Location', '/parieur/phases/' . (int)$m[1] . '/parier')->withStatus(302);
     }

@@ -330,11 +330,11 @@ final class AdminController
         $html = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>'
               . '<p>Vous avez ete invite a participer a la campagne "' . htmlspecialchars($campaignLabel) . '".</p>'
               . '<p>Acceder a la campagne sans connexion: <a href="' . htmlspecialchars($campaignLink) . '">' . htmlspecialchars($campaignLink) . '</a></p>'
-              . '<p>Ce lien est personnel et utilisable une seule fois.</p>';
+              . '<p>Ce lien est personnel.</p>';
         $text = "Bonjour $name,\n"
               . "Vous avez ete invite a participer a la campagne \"$campaignLabel\".\n"
               . "Acceder a la campagne sans connexion: $campaignLink\n"
-              . "Ce lien est personnel et utilisable une seule fois.\n";
+              . "Ce lien est personnel.\n";
 
         return Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text);
     }

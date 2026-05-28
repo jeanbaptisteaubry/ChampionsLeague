@@ -87,13 +87,13 @@ final class AdminReminderController
                   . ' approche de sa date limite' . ($limit ? ' (' . htmlspecialchars($limit) . ')' : '') . '.</p>'
                   . '<p>Déposez ou mettez à jour vos paris ici: '
                   . '<a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>'
-                  . '<p>Ce lien est personnel et utilisable une seule fois.</p>'
+                  . '<p>Ce lien est personnel.</p>'
                   . '<p>Merci et bons pronostics !</p>';
             $text = 'Bonjour ' . $name . ",\n"
                   . 'Rappel: la phase "' . $phaseLib . '"' . ($campLib !== '' ? ' de la campagne "' . $campLib . '"' : '')
                   . ' approche de sa date limite' . ($limit ? ' (' . $limit . ')' : '') . ".\n"
                   . 'Déposez ou mettez à jour vos paris: ' . $link . "\n"
-                  . "Ce lien est personnel et utilisable une seule fois.\n"
+                  . "Ce lien est personnel.\n"
                   . 'Merci et bons pronostics !';
 
             if (Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text)) { $sent++; }

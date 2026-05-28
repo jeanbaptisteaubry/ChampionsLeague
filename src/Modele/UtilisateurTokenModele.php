@@ -44,6 +44,14 @@ final class UtilisateurTokenModele
         return $row !== false ? $row : null;
     }
 
+    public function findAnyType(string $token): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM `UtilisateurToken` WHERE `token`=:tok');
+        $stmt->execute([':tok' => $token]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row !== false ? $row : null;
+    }
+
     public function markUsed(int $idToken): bool
     {
         $stmt = $this->pdo->prepare('UPDATE `UtilisateurToken` SET `usedAt`=NOW() WHERE `idToken`=:id');
