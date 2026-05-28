@@ -294,11 +294,8 @@ final class AdminController
             $this->inscriptions->inscrire($idUser, $idCampagne);
             $invited++;
 
-            $activationToken = null;
-            if (empty($user['motDePasseHasch'])) {
-                $activationToken = $this->userTokens->create($idUser, 'activation', 48);
-            }
-            if ($this->sendCampaignInviteEmail($request, $user, $campagne, $activationToken)) {
+            $accessToken = $this->userTokens->create($idUser, 'campagne_' . $idCampagne, 24 * 30);
+            if ($this->sendCampaignInviteEmail($request, $user, $campagne, $accessToken)) {
                 $sent++;
             } else {
                 $failed++;
@@ -315,15 +312,14 @@ final class AdminController
         return $response->withHeader('Location', "/admin/campagnes/$idCampagne/invitations")->withStatus(302);
     }
 
-    private function sendCampaignInviteEmail(Request $request, array $user, array $campagne, ?string $activationToken): bool
+    private function sendCampaignInviteEmail(Request $request, array $user, array $campagne, string $accessToken): bool
     {
         $uri = $request->getUri();
         $host = $uri->getHost();
         $scheme = $uri->getScheme() ?: 'http';
         $port = $uri->getPort();
         $base = $scheme . '://' . $host . ($port && !in_array($port, [80,443]) ? ':' . $port : '');
-        $campaignLink = $base . '/parieur/campagnes/' . (int)$campagne['idCampagnePari'];
-        $activationLink = $activationToken ? $base . '/account/activate/' . $activationToken : null;
+        $campaignLink = $base . '/invitation/campagne/' . $accessToken;
 
         $name = (string)($user['pseudo'] ?? '');
         $email = (string)($user['mail'] ?? '');
@@ -332,18 +328,13 @@ final class AdminController
         $campaignLabel = (string)($campagne['libelle'] ?? '');
         $subject = 'Invitation campagne: ' . $campaignLabel;
         $html = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>'
-              . '<p>Vous avez ete invite a participer a la campagne "' . htmlspecialchars($campaignLabel) . '".</p>';
-        $text = "Bonjour $name,\nVous avez ete invite a participer a la campagne \"$campaignLabel\".\n";
-
-        if ($activationLink !== null) {
-            $html .= '<p>Activez d\'abord votre compte pour definir votre mot de passe: '
-                  . '<a href="' . htmlspecialchars($activationLink) . '">' . htmlspecialchars($activationLink) . '</a></p>'
-                  . '<p>Ce lien expire dans 48h.</p>';
-            $text .= "Activez d'abord votre compte: $activationLink\n(Lien valable 48h).\n";
-        }
-
-        $html .= '<p>Acceder a la campagne: <a href="' . htmlspecialchars($campaignLink) . '">' . htmlspecialchars($campaignLink) . '</a></p>';
-        $text .= "Acceder a la campagne: $campaignLink\n";
+              . '<p>Vous avez ete invite a participer a la campagne "' . htmlspecialchars($campaignLabel) . '".</p>'
+              . '<p>Acceder a la campagne sans connexion: <a href="' . htmlspecialchars($campaignLink) . '">' . htmlspecialchars($campaignLink) . '</a></p>'
+              . '<p>Ce lien est personnel, utilisable une seule fois, et expire dans 30 jours.</p>';
+        $text = "Bonjour $name,\n"
+              . "Vous avez ete invite a participer a la campagne \"$campaignLabel\".\n"
+              . "Acceder a la campagne sans connexion: $campaignLink\n"
+              . "Ce lien est personnel, utilisable une seule fois, et expire dans 30 jours.\n";
 
         return Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text);
     }

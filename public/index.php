@@ -85,6 +85,7 @@ $app->get('/account/reset', [$auth, 'resetRequestForm']);
 $app->post('/account/reset', [$auth, 'resetRequest']);
 $app->get('/account/reset/{token}', [$auth, 'resetForm']);
 $app->post('/account/reset/{token}', [$auth, 'resetSubmit']);
+$app->get('/invitation/campagne/{token}', [$auth, 'campaignAccess']);
 
 // Middlewares (PSR-15)
 $setTwigGlobals = function (Request $request, RequestHandler $handler) use ($twig) : Response {
