@@ -79,9 +79,9 @@ final class AuthController
     public function campaignAccess(Request $request, Response $response, array $args): Response
     {
         $token = (string)($args['token'] ?? '');
-        $row = $this->tokens->findValidAnyType($token);
+        $row = $this->tokens->findUnusedAnyType($token);
         if (!$row || !preg_match('/^campagne_(\d+)$/', (string)($row['type'] ?? ''), $m)) {
-            $_SESSION['flash_error'] = 'Lien invalide ou expire';
+            $_SESSION['flash_error'] = 'Lien invalide ou deja utilise';
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
@@ -107,6 +107,39 @@ final class AuthController
         $this->tokens->markUsed((int)$row['idToken']);
 
         return $response->withHeader('Location', '/parieur/campagnes/' . (int)$m[1])->withStatus(302);
+    }
+
+    public function phaseAccess(Request $request, Response $response, array $args): Response
+    {
+        $token = (string)($args['token'] ?? '');
+        $row = $this->tokens->findUnusedAnyType($token);
+        if (!$row || !preg_match('/^phase_(\d+)$/', (string)($row['type'] ?? ''), $m)) {
+            $_SESSION['flash_error'] = 'Lien invalide ou deja utilise';
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        $user = $this->users->findById((int)$row['idUtilisateur']);
+        if (!$user) {
+            $_SESSION['flash_error'] = 'Utilisateur introuvable';
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        $type = $this->types->findById((int)$user['idTypeUtilisateur']);
+        if (($type['libelle'] ?? null) !== 'parieur') {
+            $_SESSION['flash_error'] = 'Lien reserve aux parieurs';
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
+        $_SESSION['user'] = [
+            'id' => (int)$user['idUtilisateur'],
+            'pseudo' => $user['pseudo'],
+            'mail' => $user['mail'],
+            'idTypeUtilisateur' => (int)$user['idTypeUtilisateur'],
+            'typeLibelle' => $type['libelle'] ?? null,
+        ];
+        $this->tokens->markUsed((int)$row['idToken']);
+
+        return $response->withHeader('Location', '/parieur/phases/' . (int)$m[1] . '/parier')->withStatus(302);
     }
 
     // ===== Reset mot de passe =====

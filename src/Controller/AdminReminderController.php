@@ -7,6 +7,7 @@ use App\Modele\CampagnePariModele;
 use App\Modele\InscriptionPariModele;
 use App\Modele\PhaseCampagneModele;
 use App\Modele\PhaseParieurVerrouModele;
+use App\Modele\UtilisateurTokenModele;
 use App\Service\Mailer;
 use App\Service\PhaseMailer;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -20,6 +21,7 @@ final class AdminReminderController
         private CampagnePariModele $campagnes = new CampagnePariModele(),
         private PhaseCampagneModele $phases = new PhaseCampagneModele(),
         private InscriptionPariModele $inscriptions = new InscriptionPariModele(),
+        private UtilisateurTokenModele $tokens = new UtilisateurTokenModele(),
     ) {}
 
     public function sendReminderPhase(Request $request, Response $response, array $args): Response
@@ -54,7 +56,6 @@ final class AdminReminderController
         $scheme = $uri->getScheme() ?: 'http';
         $port = $uri->getPort();
         $base = $scheme . '://' . $host . ($port && !in_array($port, [80,443]) ? ':' . $port : '');
-        $link = $base . '/parieur/phases/' . $idPhase . '/parier';
 
         $limit = null;
         try {
@@ -77,17 +78,22 @@ final class AdminReminderController
             $email = (string)($u['mail'] ?? '');
             if ($email === '') { continue; }
 
+            $token = $this->tokens->create($uid, 'phase_' . $idPhase, 24 * 365 * 100);
+            $link = $base . '/invitation/phase/' . $token;
+
             $html = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>'
                   . '<p>Petit rappel: la phase "' . htmlspecialchars($phaseLib) . '"'
                   . ($campLib !== '' ? ' de la campagne "' . htmlspecialchars($campLib) . '"' : '')
                   . ' approche de sa date limite' . ($limit ? ' (' . htmlspecialchars($limit) . ')' : '') . '.</p>'
                   . '<p>Déposez ou mettez à jour vos paris ici: '
                   . '<a href="' . htmlspecialchars($link) . '">' . htmlspecialchars($link) . '</a></p>'
+                  . '<p>Ce lien est personnel et utilisable une seule fois.</p>'
                   . '<p>Merci et bons pronostics !</p>';
             $text = 'Bonjour ' . $name . ",\n"
                   . 'Rappel: la phase "' . $phaseLib . '"' . ($campLib !== '' ? ' de la campagne "' . $campLib . '"' : '')
                   . ' approche de sa date limite' . ($limit ? ' (' . $limit . ')' : '') . ".\n"
                   . 'Déposez ou mettez à jour vos paris: ' . $link . "\n"
+                  . "Ce lien est personnel et utilisable une seule fois.\n"
                   . 'Merci et bons pronostics !';
 
             if (Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text)) { $sent++; }

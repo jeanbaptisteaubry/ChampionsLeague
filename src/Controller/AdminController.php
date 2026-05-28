@@ -294,7 +294,7 @@ final class AdminController
             $this->inscriptions->inscrire($idUser, $idCampagne);
             $invited++;
 
-            $accessToken = $this->userTokens->create($idUser, 'campagne_' . $idCampagne, 24 * 30);
+            $accessToken = $this->userTokens->create($idUser, 'campagne_' . $idCampagne, 24 * 365 * 100);
             if ($this->sendCampaignInviteEmail($request, $user, $campagne, $accessToken)) {
                 $sent++;
             } else {
@@ -330,11 +330,11 @@ final class AdminController
         $html = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>'
               . '<p>Vous avez ete invite a participer a la campagne "' . htmlspecialchars($campaignLabel) . '".</p>'
               . '<p>Acceder a la campagne sans connexion: <a href="' . htmlspecialchars($campaignLink) . '">' . htmlspecialchars($campaignLink) . '</a></p>'
-              . '<p>Ce lien est personnel, utilisable une seule fois, et expire dans 30 jours.</p>';
+              . '<p>Ce lien est personnel et utilisable une seule fois.</p>';
         $text = "Bonjour $name,\n"
               . "Vous avez ete invite a participer a la campagne \"$campaignLabel\".\n"
               . "Acceder a la campagne sans connexion: $campaignLink\n"
-              . "Ce lien est personnel, utilisable une seule fois, et expire dans 30 jours.\n";
+              . "Ce lien est personnel et utilisable une seule fois.\n";
 
         return Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text);
     }
