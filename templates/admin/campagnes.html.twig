@@ -21,6 +21,7 @@
           — Gain: <em>non défini</em>
         {% endif %}
         — <a href="/admin/campagnes/{{ c.idCampagnePari }}/phases">Gérer phases</a>
+        — <a href="/admin/campagnes/{{ c.idCampagnePari }}/invitations">Inviter des parieurs</a>
         {% set count = (inscCounts[c.idCampagnePari] ?? 0) %}
         {% if count == 0 %}
           <form method="post" action="/admin/campagnes/{{ c.idCampagnePari }}/gain" style="display:block; margin:.25rem 0 .75rem 0;">

@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>Inviter des parieurs &mdash; {{ campagne.libelle }}</h1>
+  <p><a href="/admin/campagnes">Retour aux campagnes</a></p>
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+
+  <h2>Participants actuels</h2>
+  {% if participants %}
+    <ul>
+      {% for u in participants %}
+        <li>{{ u.pseudo }} &mdash; {{ u.mail }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Aucun parieur inscrit pour l'instant.</p>
+  {% endif %}
+
+  <h2>Parieurs disponibles</h2>
+  {% if available %}
+    <form method="post" action="/admin/campagnes/{{ campagne.idCampagnePari }}/invitations">
+      <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+      <table border="1" cellpadding="6" cellspacing="0">
+        <thead>
+          <tr>
+            <th>Inviter</th>
+            <th>Pseudo</th>
+            <th>Email</th>
+            <th>Compte</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in available %}
+            <tr>
+              <td><input type="checkbox" name="parieurs[]" value="{{ u.idUtilisateur }}"></td>
+              <td>{{ u.pseudo }}</td>
+              <td>{{ u.mail }}</td>
+              <td>{{ u.motDePasseHasch ? 'Actif' : 'Activation a envoyer' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p><button>Inviter les parieurs selectionnes</button></p>
+    </form>
+  {% else %}
+    <p>Tous les parieurs existants sont deja inscrits a cette campagne.</p>
+  {% endif %}
+{% endblock %}

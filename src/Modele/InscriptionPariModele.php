@@ -72,4 +72,19 @@ final class InscriptionPariModele
         $stmt->execute([':c' => $idCampagnePari]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    public function listParieursNotInCampagne(int $idCampagnePari): array
+    {
+        $sql = 'SELECT u.`idUtilisateur`, u.`pseudo`, u.`mail`, u.`motDePasseHasch`
+                FROM `Utilisateur` u
+                JOIN `TypeUtilisateur` t ON t.`idTypeUtilisateur` = u.`idTypeUtilisateur`
+                WHERE t.`libelle` = :type
+                  AND u.`idUtilisateur` NOT IN (
+                      SELECT i.`idParieur` FROM `InscriptionPari` i WHERE i.`idCampagnePari` = :c
+                  )
+                ORDER BY u.`pseudo`';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':type' => 'parieur', ':c' => $idCampagnePari]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }

@@ -254,7 +254,7 @@ final class ParieurController
         }
 
         $html = $this->twig->render('parieur/synthese_campagne.html.twig', [
-            'title' => 'SynthÃ¨se â€” ' . ($campagne['libelle'] ?? ''),
+            'title' => 'Synth&eacutese” ' . ($campagne['libelle'] ?? ''),
             'campagne' => $campagne,
             'phases' => $phases,
             'participants' => $participants,

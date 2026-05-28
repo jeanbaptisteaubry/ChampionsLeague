@@ -236,6 +236,118 @@ final class AdminController
         return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
     }
 
+    public function campagneInvites(Request $request, Response $response, array $args): Response
+    {
+        $idCampagne = (int)($args['idCampagne'] ?? 0);
+        $campagne = $idCampagne > 0 ? $this->campagnes->findById($idCampagne) : null;
+        if (!$campagne) {
+            $_SESSION['flash_error'] = 'Campagne introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $html = $this->twig->render('admin/campagne_invites.html.twig', [
+            'title' => 'Inviter des parieurs',
+            'campagne' => $campagne,
+            'participants' => $this->inscriptions->listUsersByCampagne($idCampagne),
+            'available' => $this->inscriptions->listParieursNotInCampagne($idCampagne),
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
+        ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function inviteParieursToCampagne(Request $request, Response $response, array $args): Response
+    {
+        $idCampagne = (int)($args['idCampagne'] ?? 0);
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', "/admin/campagnes/$idCampagne/invitations")->withStatus(302);
+        }
+
+        $campagne = $idCampagne > 0 ? $this->campagnes->findById($idCampagne) : null;
+        if (!$campagne) {
+            $_SESSION['flash_error'] = 'Campagne introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $ids = $data['parieurs'] ?? [];
+        if (!is_array($ids) || empty($ids)) {
+            $_SESSION['flash_error'] = 'Selectionnez au moins un parieur';
+            return $response->withHeader('Location', "/admin/campagnes/$idCampagne/invitations")->withStatus(302);
+        }
+
+        $allowed = [];
+        foreach ($this->inscriptions->listParieursNotInCampagne($idCampagne) as $u) {
+            $allowed[(int)$u['idUtilisateur']] = $u;
+        }
+
+        $invited = 0;
+        $sent = 0;
+        $failed = 0;
+        foreach ($ids as $rawId) {
+            $idUser = (int)$rawId;
+            if (!isset($allowed[$idUser])) { continue; }
+            $user = $allowed[$idUser];
+            $this->inscriptions->inscrire($idUser, $idCampagne);
+            $invited++;
+
+            $activationToken = null;
+            if (empty($user['motDePasseHasch'])) {
+                $activationToken = $this->userTokens->create($idUser, 'activation', 48);
+            }
+            if ($this->sendCampaignInviteEmail($request, $user, $campagne, $activationToken)) {
+                $sent++;
+            } else {
+                $failed++;
+            }
+        }
+
+        if ($invited === 0) {
+            $_SESSION['flash_error'] = 'Aucun nouveau parieur invite';
+        } else {
+            $_SESSION['flash_ok'] = $invited . ' parieur(s) invite(s), ' . $sent . ' email(s) envoye(s)';
+            if ($failed > 0) { $_SESSION['flash_ok'] .= ' (' . $failed . ' echec(s))'; }
+        }
+
+        return $response->withHeader('Location', "/admin/campagnes/$idCampagne/invitations")->withStatus(302);
+    }
+
+    private function sendCampaignInviteEmail(Request $request, array $user, array $campagne, ?string $activationToken): bool
+    {
+        $uri = $request->getUri();
+        $host = $uri->getHost();
+        $scheme = $uri->getScheme() ?: 'http';
+        $port = $uri->getPort();
+        $base = $scheme . '://' . $host . ($port && !in_array($port, [80,443]) ? ':' . $port : '');
+        $campaignLink = $base . '/parieur/campagnes/' . (int)$campagne['idCampagnePari'];
+        $activationLink = $activationToken ? $base . '/account/activate/' . $activationToken : null;
+
+        $name = (string)($user['pseudo'] ?? '');
+        $email = (string)($user['mail'] ?? '');
+        if ($email === '') { return false; }
+
+        $campaignLabel = (string)($campagne['libelle'] ?? '');
+        $subject = 'Invitation campagne: ' . $campaignLabel;
+        $html = '<p>Bonjour ' . htmlspecialchars($name) . ',</p>'
+              . '<p>Vous avez ete invite a participer a la campagne "' . htmlspecialchars($campaignLabel) . '".</p>';
+        $text = "Bonjour $name,\nVous avez ete invite a participer a la campagne \"$campaignLabel\".\n";
+
+        if ($activationLink !== null) {
+            $html .= '<p>Activez d\'abord votre compte pour definir votre mot de passe: '
+                  . '<a href="' . htmlspecialchars($activationLink) . '">' . htmlspecialchars($activationLink) . '</a></p>'
+                  . '<p>Ce lien expire dans 48h.</p>';
+            $text .= "Activez d'abord votre compte: $activationLink\n(Lien valable 48h).\n";
+        }
+
+        $html .= '<p>Acceder a la campagne: <a href="' . htmlspecialchars($campaignLink) . '">' . htmlspecialchars($campaignLink) . '</a></p>';
+        $text .= "Acceder a la campagne: $campaignLink\n";
+
+        return Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text);
+    }
+
     private function computeInscriptionCounts(array $campagnes): array
     {
         $counts = [];
