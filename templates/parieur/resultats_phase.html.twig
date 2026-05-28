@@ -34,6 +34,10 @@
           {% if bet %}
             {% if not hasOff %}
               {% set style = 'background:#f6f6f6;color:#999' %}
+            {% elseif pts >= 5 %}
+              {% set style = 'background:#81c784;color:#fff' %}
+            {% elseif pts >= 2 %}
+              {% set style = 'background:#c8e6c9' %}
             {% elseif pts > 0 %}
               {% set style = 'background:#e6ffe6' %}
             {% else %}
