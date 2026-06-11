@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 {% block body %}
-  <h1>Phases — Campagne: {{ campagne.libelle }}</h1>
+  <h1>Phases &mdash; Campagne: {{ campagne.libelle }}</h1>
   {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
   {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
   <form method="post" action="/admin/campagnes/{{ campagne.idCampagnePari }}/phases">
     <input type="hidden" name="_csrf" value="{{ app.csrf }}">
     <label>Ordre <input type="number" name="ordre" value="1" min="1" required></label>
-    <label>Libellé <input name="libelle" required></label>
+    <label>Libell&eacute; <input name="libelle" required></label>
     <label>Date limite
       <input type="datetime-local" name="dateheureLimite" step="1" required>
     </label>
@@ -15,22 +15,23 @@
         {% for t in types %}<option value="{{ t.idTypePhase }}">{{ t.libelle }}</option>{% endfor %}
       </select>
     </label>
-    <button>Créer</button>
+    <button>Cr&eacute;er</button>
   </form>
   <h2>Liste</h2>
   <ul>
     {% for p in phases %}
       {% set count = (apCounts[p.idPhaseCampagne] ?? 0) %}
-      <li>#{{ p.idPhaseCampagne }} — {{ p.ordre }} — {{ p.libelle }} — {{ p.typeLibelle }} — Limite: {{ p.dateheureLimite }} —
-        <a href="/admin/phases/{{ p.idPhaseCampagne }}/a-parier">Gérer AParier</a> —
-        <a href="/admin/phases/{{ p.idPhaseCampagne }}/calculs">Calculs de points</a> —
-        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/reminder" style="display:inline" onsubmit="return confirm('Envoyer un email de rappel à tous les inscrits non verrouillés ?');">
+      {% set betStatus = (betStatuses[p.idPhaseCampagne] ?? {}) %}
+      <li>#{{ p.idPhaseCampagne }} &mdash; {{ p.ordre }} &mdash; {{ p.libelle }} &mdash; {{ p.typeLibelle }} &mdash; Limite: {{ p.dateheureLimite }} &mdash;
+        <a href="/admin/phases/{{ p.idPhaseCampagne }}/a-parier">G&eacute;rer AParier</a> &mdash;
+        <a href="/admin/phases/{{ p.idPhaseCampagne }}/calculs">Calculs de points</a> &mdash;
+        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/reminder" style="display:inline" onsubmit="return confirm('Envoyer un email de rappel a tous les inscrits non verrouilles ?');">
           <input type="hidden" name="_csrf" value="{{ app.csrf }}">
           <button>Envoyer rappel</button>
         </form>
-        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/recap" style="display:inline" onsubmit="return confirm('Envoyer le récapitulatif (tableau) à tous les inscrits ?');">
+        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/recap" style="display:inline" onsubmit="return confirm('Envoyer le recapitulatif (tableau) a tous les inscrits ?');">
           <input type="hidden" name="_csrf" value="{{ app.csrf }}">
-          <button>Envoyer récapitulatif</button>
+          <button>Envoyer r&eacute;capitulatif</button>
         </form>
         {% if count == 0 %}
           <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/delete" style="display:inline" onsubmit="return confirm('Supprimer cette phase ?');">
@@ -38,8 +39,58 @@
             <button>Supprimer</button>
           </form>
         {% else %}
-          <em style="color:#888">({{ count }} à parier)</em>
+          <em style="color:#888">({{ count }} &agrave; parier)</em>
         {% endif %}
+
+        <div style="margin:.4rem 0 .8rem 1rem">
+          <strong>&Eacute;tat des paris :</strong>
+          {% if (betStatus.participants ?? [])|length == 0 %}
+            aucun participant inscrit
+          {% elseif (betStatus.expectedValues ?? 0) == 0 %}
+            phase &agrave; configurer
+          {% else %}
+            {{ betStatus.counts.locked|default(0) }} verrouill&eacute;(s),
+            {{ betStatus.counts.complete|default(0) }} complet(s),
+            {{ betStatus.counts.in_progress|default(0) }} en cours,
+            {{ betStatus.counts.not_started|default(0) }} non commenc&eacute;(s)
+          {% endif %}
+
+          {% if (betStatus.participants ?? [])|length > 0 %}
+            <details style="margin-top:.25rem">
+              <summary>Voir le d&eacute;tail par participant</summary>
+              <table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse; margin-top:.4rem">
+                <thead>
+                  <tr>
+                    <th>Participant</th>
+                    <th>&Eacute;tat</th>
+                    <th>Valeurs renseign&eacute;es</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for participant in betStatus.participants %}
+                    <tr>
+                      <td>{{ participant.pseudo }}</td>
+                      <td>
+                        {% if participant.status == 'locked' %}
+                          Verrouill&eacute;
+                        {% elseif participant.status == 'complete' %}
+                          Complet
+                        {% elseif participant.status == 'in_progress' %}
+                          En cours
+                        {% else %}
+                          Non commenc&eacute;
+                        {% endif %}
+                      </td>
+                      <td style="text-align:center">
+                        {{ participant.filledValues }}/{{ participant.expectedValues }}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </details>
+          {% endif %}
+        </div>
       </li>
     {% else %}
       <li>Pas de phase</li>

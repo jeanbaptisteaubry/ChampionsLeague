@@ -77,4 +77,50 @@ final class PariModele
         $stmt->execute([':u' => $idParieur, ':c' => $idCampagnePari]);
         return (int)$stmt->fetchColumn();
     }
+
+    public function listStatusByPhase(int $idCampagnePari, int $idPhaseCampagne, int $expectedValues): array
+    {
+        $sql = 'SELECT u.`idUtilisateur`, u.`pseudo`,
+                       COUNT(CASE WHEN LENGTH(TRIM(pv.`valeur`)) > 0 THEN 1 END) AS filledValues,
+                       MAX(v.`dateVerrouillage`) AS lockedAt
+                FROM `InscriptionPari` i
+                JOIN `Utilisateur` u ON u.`idUtilisateur` = i.`idParieur`
+                LEFT JOIN `AParier` a ON a.`idPhaseCampagne` = :phase_items
+                LEFT JOIN `Pari` pr
+                       ON pr.`idParieur` = u.`idUtilisateur`
+                      AND pr.`idAParier` = a.`idAParier`
+                LEFT JOIN `PariValeur` pv ON pv.`idPari` = pr.`idPari`
+                LEFT JOIN `PhaseParieurVerrou` v
+                       ON v.`idParieur` = u.`idUtilisateur`
+                      AND v.`idPhaseCampagne` = :phase_lock
+                WHERE i.`idCampagnePari` = :campaign
+                GROUP BY u.`idUtilisateur`, u.`pseudo`
+                ORDER BY u.`pseudo`';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            ':phase_items' => $idPhaseCampagne,
+            ':phase_lock' => $idPhaseCampagne,
+            ':campaign' => $idCampagnePari,
+        ]);
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as &$row) {
+            $filledValues = (int)$row['filledValues'];
+            $row['filledValues'] = $filledValues;
+            $row['expectedValues'] = $expectedValues;
+
+            if ($row['lockedAt'] !== null) {
+                $row['status'] = 'locked';
+            } elseif ($expectedValues > 0 && $filledValues >= $expectedValues) {
+                $row['status'] = 'complete';
+            } elseif ($filledValues > 0) {
+                $row['status'] = 'in_progress';
+            } else {
+                $row['status'] = 'not_started';
+            }
+        }
+        unset($row);
+
+        return $rows;
+    }
 }

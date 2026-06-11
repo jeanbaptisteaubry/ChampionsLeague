@@ -35,7 +35,8 @@ final class AdminController
         private InscriptionPariModele $inscriptions = new InscriptionPariModele(),
         private TypeResultatModele $typeResultat = new TypeResultatModele(),
         private PhaseCalculPointModele $phaseCalc = new PhaseCalculPointModele(),
-        private UtilisateurTokenModele $userTokens = new UtilisateurTokenModele()
+        private UtilisateurTokenModele $userTokens = new UtilisateurTokenModele(),
+        private PariModele $paris = new PariModele()
     ) {}
 
     public function home(Request $request, Response $response): Response
@@ -413,13 +414,36 @@ final class AdminController
         $types = $this->typePhase->findAll();
         $campagne = $this->campagnes->findById($idCampagne);
         $apCounts = [];
-        foreach ($phases as $p) { $apCounts[(int)$p['idPhaseCampagne']] = $this->aParier->countByPhase((int)$p['idPhaseCampagne']); }
+        $betStatuses = [];
+        foreach ($phases as $p) {
+            $idPhase = (int)$p['idPhaseCampagne'];
+            $itemCount = $this->aParier->countByPhase($idPhase);
+            $expectedValues = $itemCount * (int)$p['nbValeurParPari'];
+            $participants = $this->paris->listStatusByPhase($idCampagne, $idPhase, $expectedValues);
+            $counts = [
+                'locked' => 0,
+                'complete' => 0,
+                'in_progress' => 0,
+                'not_started' => 0,
+            ];
+            foreach ($participants as $participant) {
+                $counts[$participant['status']]++;
+            }
+
+            $apCounts[$idPhase] = $itemCount;
+            $betStatuses[$idPhase] = [
+                'participants' => $participants,
+                'counts' => $counts,
+                'expectedValues' => $expectedValues,
+            ];
+        }
         $html = $this->twig->render('admin/phases.html.twig', [
             'title' => 'Phases de campagne',
             'campagne' => $campagne,
             'phases' => $phases,
             'types' => $types,
             'apCounts' => $apCounts,
+            'betStatuses' => $betStatuses,
             'ok' => $_SESSION['flash_ok'] ?? null,
             'error' => $_SESSION['flash_error'] ?? null,
         ]);
