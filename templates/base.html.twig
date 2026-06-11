@@ -14,6 +14,16 @@
     </style>
   </head>
   <body>
+    {% if app.impersonator is defined and app.impersonator %}
+      <div style="border:2px solid #b36b00; background:#fff3cd; padding:.75rem; margin-bottom:1rem">
+        <strong>Mode assistance :</strong>
+        vous agissez comme {{ app.user.pseudo }}. Les paris saisis seront r&eacute;ellement enregistr&eacute;s pour ce participant.
+        <form method="post" action="/assistance/stop" style="display:inline; margin-left:.75rem">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <button type="submit">Revenir au compte administrateur</button>
+        </form>
+      </div>
+    {% endif %}
     <nav>
       <a href="/">Accueil</a>
       {% if app.user is defined and app.user %}
@@ -24,10 +34,14 @@
           <a href="/admin/home-text">Texte d'accueil</a>
         {% else %}
           <a href="/parieur/campagnes">Campagnes</a>
-          <a href="/parieur/password">Changer le mot de passe</a>
-          <a href="/parieur/pseudo">Changer le pseudo</a>
+          {% if not (app.impersonator is defined and app.impersonator) %}
+            <a href="/parieur/password">Changer le mot de passe</a>
+            <a href="/parieur/pseudo">Changer le pseudo</a>
+          {% endif %}
         {% endif %}
-        <a href="/logout">Déconnexion ({{ app.user.pseudo }})</a>
+        {% if not (app.impersonator is defined and app.impersonator) %}
+          <a href="/logout">D&eacute;connexion ({{ app.user.pseudo }})</a>
+        {% endif %}
       {% else %}
         <a href="/login">Connexion</a>
       {% endif %}

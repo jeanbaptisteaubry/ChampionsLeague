@@ -76,6 +76,28 @@ final class AuthController
         return $response->withHeader('Location', '/login')->withStatus(302);
     }
 
+    public function stopBetAssistance(Request $request, Response $response): Response
+    {
+        $data = (array)($request->getParsedBody() ?? []);
+        $impersonator = $_SESSION['impersonator'] ?? null;
+        if (!is_array($impersonator) || !isset($impersonator['user'])) {
+            return $response->withHeader('Location', '/')->withStatus(302);
+        }
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', '/parieur')->withStatus(302);
+        }
+
+        $admin = $impersonator['user'];
+        $returnUrl = (string)($impersonator['returnUrl'] ?? '/admin/campagnes');
+        unset($_SESSION['impersonator']);
+        $_SESSION['user'] = $admin;
+        session_regenerate_id(true);
+        $_SESSION['flash_ok'] = 'Mode assistance termine';
+
+        return $response->withHeader('Location', $returnUrl)->withStatus(302);
+    }
+
     public function campaignAccess(Request $request, Response $response, array $args): Response
     {
         $token = (string)($args['token'] ?? '');

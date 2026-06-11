@@ -650,7 +650,11 @@ final class ParieurController
     {
         $idPhase = (int)($args['idPhase'] ?? 0);
         $phase = $this->phases->findById($idPhase);
-        if ($phase && !empty($phase['dateheureLimite'])) {
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase inconnue';
+            return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+        }
+        if (!empty($phase['dateheureLimite'])) {
             try {
                 if ((new \DateTimeImmutable($phase['dateheureLimite'])) < (new \DateTimeImmutable('now'))) {
                     $_SESSION['flash_error'] = 'Phase clÃ´turÃ©e: les paris ne sont plus acceptÃ©s';
@@ -664,6 +668,11 @@ final class ParieurController
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
         }
         $idUser = (int)($_SESSION['user']['id'] ?? 0);
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+        if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
+            $_SESSION['flash_error'] = 'Vous devez etre inscrit a la campagne';
+            return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
+        }
         if ($this->locks->isLocked($idUser, $idPhase)) {
             $_SESSION['flash_error'] = 'Vous avez verrouillÃ© vos paris pour cette phase. Modification impossible.';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
@@ -690,6 +699,13 @@ final class ParieurController
                 }
             }
         }
+
+        $allowedItems = [];
+        foreach ($this->aParier->findByPhase($idPhase) as $item) {
+            $allowedItems[(int)$item['idAParier']] = true;
+        }
+        $valuesByItem = array_intersect_key($valuesByItem, $allowedItems);
+
         if (empty($valuesByItem)) {
             $_SESSION['flash_error'] = 'Aucun pari saisi';
             return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);

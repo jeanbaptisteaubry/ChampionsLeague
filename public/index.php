@@ -92,6 +92,7 @@ $app->get('/invitation/phase/{token}', [$auth, 'phaseAccess']);
 $setTwigGlobals = function (Request $request, RequestHandler $handler) use ($twig) : Response {
     $twig->addGlobal('app', [
         'user' => $_SESSION['user'] ?? null,
+        'impersonator' => $_SESSION['impersonator'] ?? null,
         'csrf' => csrf_token(),
     ]);
     return $handler->handle($request);
@@ -115,8 +116,26 @@ $requireRole = function (string $role) use ($responseFactory) {
     };
 };
 
+$restrictAssistance = function (Request $request, RequestHandler $handler) use ($responseFactory): Response {
+    if (!isset($_SESSION['impersonator']) || strtoupper($request->getMethod()) === 'GET') {
+        return $handler->handle($request);
+    }
+
+    $path = $request->getUri()->getPath();
+    $idPhase = (int)($_SESSION['impersonator']['phaseId'] ?? 0);
+    if ($idPhase > 0 && $path === "/parieur/phases/$idPhase/parier") {
+        return $handler->handle($request);
+    }
+
+    $_SESSION['flash_error'] = 'Cette action est bloquee en mode assistance';
+    $target = $idPhase > 0 ? "/parieur/phases/$idPhase/parier" : '/parieur';
+    return $responseFactory->createResponse(302)->withHeader('Location', $target);
+};
+
 // Global Twig globals middleware
 $app->add($setTwigGlobals);
+
+$app->post('/assistance/stop', [$auth, 'stopBetAssistance'])->add($requireAuth);
 
 // Ensure UTF-8 content type for HTML responses
 $app->add(function (Request $request, RequestHandler $handler) use ($responseFactory): Response {
@@ -157,6 +176,7 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel, $adminRemind
     // Phases d'une campagne
     $group->get('/campagnes/{idCampagne}/phases', [$admin, 'listPhases']);
     $group->post('/campagnes/{idCampagne}/phases', [$admin, 'createPhase']);
+    $group->post('/phases/{idPhase}/assistance/{idUser}', [$admin, 'startBetAssistance']);
     $group->post('/phases/{idPhase}/delete', [$admin, 'deletePhase']);
     // Config calcul des points
     $group->get('/phases/{idPhase}/calculs', [$admin, 'listCalculs']);
@@ -228,6 +248,6 @@ $app->group('/parieur', function ($group) use ($parieur) {
     $group->post('/phases/{idPhase}/verrouiller', [$parieur, 'verrouiller']);
     $group->get('/phases/{idPhase}/resultats', [$parieur, 'resultatsPhase']);
     $group->get('/phases/{idPhase}/resultats.csv', [$parieur, 'resultatsPhaseCsv']);
-})->add($requireRole('parieur'))->add($requireAuth);
+})->add($restrictAssistance)->add($requireRole('parieur'))->add($requireAuth);
 
 $app->run();

@@ -452,6 +452,57 @@ final class AdminController
         return $response;
     }
 
+    public function startBetAssistance(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $idUser = (int)($args['idUser'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+        $returnUrl = $idCampagne > 0
+            ? "/admin/campagnes/$idCampagne/phases"
+            : '/admin/campagnes';
+        $data = (array)($request->getParsedBody() ?? []);
+
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+        if (!$phase || $idUser <= 0) {
+            $_SESSION['flash_error'] = 'Phase ou participant invalide';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+        if (!$this->inscriptions->estInscrit($idUser, $idCampagne)) {
+            $_SESSION['flash_error'] = 'Ce participant n est pas inscrit a la campagne';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        $user = $this->users->findById($idUser);
+        $type = $user ? $this->types->findById((int)$user['idTypeUtilisateur']) : null;
+        if (!$user || ($type['libelle'] ?? null) !== 'parieur') {
+            $_SESSION['flash_error'] = 'Compte parieur introuvable';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        $_SESSION['impersonator'] = [
+            'user' => $_SESSION['user'],
+            'returnUrl' => $returnUrl,
+            'phaseId' => $idPhase,
+        ];
+        $_SESSION['user'] = [
+            'id' => (int)$user['idUtilisateur'],
+            'pseudo' => $user['pseudo'],
+            'mail' => $user['mail'],
+            'idTypeUtilisateur' => (int)$user['idTypeUtilisateur'],
+            'typeLibelle' => 'parieur',
+        ];
+        session_regenerate_id(true);
+        $_SESSION['flash_ok'] = 'Mode assistance actif pour ' . $user['pseudo'];
+
+        return $response
+            ->withHeader('Location', "/parieur/phases/$idPhase/parier")
+            ->withStatus(302);
+    }
+
     public function createPhase(Request $request, Response $response, array $args): Response
     {
         $data = (array)($request->getParsedBody() ?? []);
