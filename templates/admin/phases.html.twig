@@ -42,6 +42,16 @@
           <em style="color:#888">({{ count }} &agrave; parier)</em>
         {% endif %}
 
+        <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/extend" style="display:inline-flex; align-items:center; gap:.25rem; margin-left:.5rem" onsubmit="return confirm('Prolonger la date limite de cette phase ?');">
+          <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+          <label style="display:inline; margin:0">
+            Prolonger de
+            <input type="number" name="hours" value="2" min="1" max="168" required style="width:4.5rem">
+            heure(s)
+          </label>
+          <button type="submit">Ajouter</button>
+        </form>
+
         <div style="margin:.4rem 0 .8rem 1rem">
           <strong>&Eacute;tat des paris :</strong>
           {% if (betStatus.participants ?? [])|length == 0 %}

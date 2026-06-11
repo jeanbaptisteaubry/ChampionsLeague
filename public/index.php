@@ -178,6 +178,7 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel, $adminRemind
     $group->post('/campagnes/{idCampagne}/phases', [$admin, 'createPhase']);
     $group->post('/phases/{idPhase}/assistance/{idUser}', [$admin, 'startBetAssistance']);
     $group->post('/phases/{idPhase}/unlock/{idUser}', [$admin, 'unlockParticipantBets']);
+    $group->post('/phases/{idPhase}/extend', [$admin, 'extendPhaseDeadline']);
     $group->post('/phases/{idPhase}/delete', [$admin, 'deletePhase']);
     // Config calcul des points
     $group->get('/phases/{idPhase}/calculs', [$admin, 'listCalculs']);

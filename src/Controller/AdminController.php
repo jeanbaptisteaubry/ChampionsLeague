@@ -529,6 +529,44 @@ final class AdminController
         return $response->withHeader('Location', $returnUrl)->withStatus(302);
     }
 
+    public function extendPhaseDeadline(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+        $returnUrl = $idCampagne > 0
+            ? "/admin/campagnes/$idCampagne/phases"
+            : '/admin/campagnes';
+        $data = (array)($request->getParsedBody() ?? []);
+
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        $hours = (int)($data['hours'] ?? 0);
+        if (!$phase || $hours < 1 || $hours > 168) {
+            $_SESSION['flash_error'] = 'Indiquez une prolongation comprise entre 1 et 168 heures';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        try {
+            $currentDeadline = new \DateTimeImmutable((string)$phase['dateheureLimite']);
+            $now = new \DateTimeImmutable('now');
+            $base = $currentDeadline > $now ? $currentDeadline : $now;
+            $newDeadline = $base->modify("+$hours hours");
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = 'Date limite invalide';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        $this->phases->updateDeadline($idPhase, $newDeadline->format('Y-m-d H:i:s'));
+        $_SESSION['flash_ok'] = "Phase prolongee de $hours heure(s), jusqu au "
+            . $newDeadline->format('d/m/Y H:i');
+
+        return $response->withHeader('Location', $returnUrl)->withStatus(302);
+    }
+
     public function createPhase(Request $request, Response $response, array $args): Response
     {
         $data = (array)($request->getParsedBody() ?? []);

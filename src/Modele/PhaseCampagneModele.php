@@ -36,6 +36,17 @@ final class PhaseCampagneModele
         return $row !== false ? $row : null;
     }
 
+    public function updateDeadline(int $idPhaseCampagne, string $dateheureLimite): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE `PhaseCampagne` SET `dateheureLimite`=:deadline WHERE `idPhaseCampagne`=:id'
+        );
+        return $stmt->execute([
+            ':deadline' => $dateheureLimite,
+            ':id' => $idPhaseCampagne,
+        ]);
+    }
+
     public function delete(int $id): bool
     {
         $stmt = $this->pdo->prepare('DELETE FROM `PhaseCampagne` WHERE `idPhaseCampagne`=:id');
