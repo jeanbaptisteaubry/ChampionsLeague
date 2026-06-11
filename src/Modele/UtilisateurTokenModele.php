@@ -28,22 +28,6 @@ final class UtilisateurTokenModele
         return $row !== false ? $row : null;
     }
 
-    public function findValidAnyType(string $token): ?array
-    {
-        $stmt = $this->pdo->prepare('SELECT * FROM `UtilisateurToken` WHERE `token`=:tok AND `usedAt` IS NULL AND `expiresAt` > NOW()');
-        $stmt->execute([':tok' => $token]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row !== false ? $row : null;
-    }
-
-    public function findUnusedAnyType(string $token): ?array
-    {
-        $stmt = $this->pdo->prepare('SELECT * FROM `UtilisateurToken` WHERE `token`=:tok AND `usedAt` IS NULL');
-        $stmt->execute([':tok' => $token]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row !== false ? $row : null;
-    }
-
     public function findAnyType(string $token): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM `UtilisateurToken` WHERE `token`=:tok');
