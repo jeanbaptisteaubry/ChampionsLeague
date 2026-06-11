@@ -736,6 +736,30 @@ final class ParieurController
             $_SESSION['flash_error'] = 'Vous devez Ãªtre inscrit Ã  la campagne';
             return $response->withHeader('Location', '/parieur/campagnes')->withStatus(302);
         }
+        $items = $this->aParier->findByPhase($idPhase);
+        $type = (new \App\Modele\TypePhaseModele())->findById((int)$phase['idTypePhase']);
+        $expectedPerItem = max(1, (int)($type['nbValeurParPari'] ?? 1));
+        $betsByItem = [];
+        foreach ($this->paris->findForUserAndPhase($idUser, $idPhase) as $bet) {
+            $betsByItem[(int)$bet['idAParier']] = $bet['valeurs'] ?? [];
+        }
+
+        $missingValues = 0;
+        foreach ($items as $item) {
+            $values = $betsByItem[(int)$item['idAParier']] ?? [];
+            for ($number = 1; $number <= $expectedPerItem; $number++) {
+                if (!isset($values[$number]) || trim((string)$values[$number]) === '') {
+                    $missingValues++;
+                }
+            }
+        }
+        if (empty($items) || $missingValues > 0) {
+            $_SESSION['flash_error'] = empty($items)
+                ? 'Aucun element a parier n est configure pour cette phase'
+                : "Verrouillage impossible : $missingValues valeur(s) de pari sont manquante(s)";
+            return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);
+        }
+
         $this->locks->lock($idUser, $idPhase);
         $_SESSION['flash_ok'] = 'Vos paris ont Ã©tÃ© verrouillÃ©s pour cette phase. Vous pouvez consulter ceux des autres.';
         return $response->withHeader('Location', "/parieur/phases/$idPhase/parier")->withStatus(302);

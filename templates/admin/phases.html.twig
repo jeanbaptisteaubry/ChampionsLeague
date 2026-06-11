@@ -90,6 +90,12 @@
                           <input type="hidden" name="_csrf" value="{{ app.csrf }}">
                           <button type="submit">Tester ses paris</button>
                         </form>
+                        {% if participant.status == 'locked' %}
+                          <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/unlock/{{ participant.idUtilisateur }}" style="display:inline" onsubmit="return confirm('Deverrouiller les paris de ce participant ?');">
+                            <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+                            <button type="submit">D&eacute;verrouiller</button>
+                          </form>
+                        {% endif %}
                       </td>
                     </tr>
                   {% endfor %}

@@ -27,6 +27,14 @@ final class PhaseParieurVerrouModele
         $stmt->execute([':u' => $idParieur, ':p' => $idPhaseCampagne]);
     }
 
+    public function unlock(int $idParieur, int $idPhaseCampagne): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'DELETE FROM `PhaseParieurVerrou` WHERE `idParieur`=:u AND `idPhaseCampagne`=:p'
+        );
+        return $stmt->execute([':u' => $idParieur, ':p' => $idPhaseCampagne]);
+    }
+
     public function countByPhase(int $idPhaseCampagne): int
     {
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM `PhaseParieurVerrou` WHERE `idPhaseCampagne` = :p');

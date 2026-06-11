@@ -503,6 +503,32 @@ final class AdminController
             ->withStatus(302);
     }
 
+    public function unlockParticipantBets(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $idUser = (int)($args['idUser'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+        $returnUrl = $idCampagne > 0
+            ? "/admin/campagnes/$idCampagne/phases"
+            : '/admin/campagnes';
+        $data = (array)($request->getParsedBody() ?? []);
+
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+        if (!$phase || $idUser <= 0 || !$this->inscriptions->estInscrit($idUser, $idCampagne)) {
+            $_SESSION['flash_error'] = 'Phase ou participant invalide';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        (new PhaseParieurVerrouModele())->unlock($idUser, $idPhase);
+        $_SESSION['flash_ok'] = 'Les paris du participant ont ete deverrouilles';
+
+        return $response->withHeader('Location', $returnUrl)->withStatus(302);
+    }
+
     public function createPhase(Request $request, Response $response, array $args): Response
     {
         $data = (array)($request->getParsedBody() ?? []);
