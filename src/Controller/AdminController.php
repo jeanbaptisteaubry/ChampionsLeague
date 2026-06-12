@@ -17,6 +17,7 @@ use App\Modele\UtilisateurTokenModele;
 use App\Modele\PhaseParieurVerrouModele;
 use App\Modele\PariModele;
 use App\Service\Mailer;
+use App\Service\PhaseMailer;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -415,6 +416,7 @@ final class AdminController
         $campagne = $this->campagnes->findById($idCampagne);
         $apCounts = [];
         $betStatuses = [];
+        $pointStatuses = [];
         foreach ($phases as $p) {
             $idPhase = (int)$p['idPhaseCampagne'];
             $itemCount = $this->aParier->countByPhase($idPhase);
@@ -436,6 +438,43 @@ final class AdminController
                 'counts' => $counts,
                 'expectedValues' => $expectedValues,
             ];
+
+            $summary = PhaseMailer::computeSummary($idPhase);
+            $ranking = [];
+            foreach (($summary['participants'] ?? []) as $participant) {
+                $idUser = (int)$participant['idUtilisateur'];
+                $ranking[] = [
+                    'idUtilisateur' => $idUser,
+                    'pseudo' => $participant['pseudo'],
+                    'total' => (int)($summary['totals'][$idUser] ?? 0),
+                ];
+            }
+            usort($ranking, static function (array $left, array $right): int {
+                $byPoints = $right['total'] <=> $left['total'];
+                return $byPoints !== 0
+                    ? $byPoints
+                    : strcasecmp((string)$left['pseudo'], (string)$right['pseudo']);
+            });
+
+            $officialCount = 0;
+            foreach (($summary['official'] ?? []) as $values) {
+                if (isset($values[1], $values[2])
+                    && trim((string)$values[1]) !== ''
+                    && trim((string)$values[2]) !== '') {
+                    $officialCount++;
+                }
+            }
+            $pointStatuses[$idPhase] = [
+                'ranking' => $ranking,
+                'items' => $summary['items'] ?? [],
+                'participants' => $summary['participants'] ?? [],
+                'cells' => $summary['cells'] ?? [],
+                'official' => $summary['official'] ?? [],
+                'points' => $summary['points'] ?? [],
+                'officialCount' => $officialCount,
+                'itemCount' => count($summary['items'] ?? []),
+                'calculationCount' => count($this->phaseCalc->listByPhase($idPhase)),
+            ];
         }
         $html = $this->twig->render('admin/phases.html.twig', [
             'title' => 'Phases de campagne',
@@ -444,6 +483,7 @@ final class AdminController
             'types' => $types,
             'apCounts' => $apCounts,
             'betStatuses' => $betStatuses,
+            'pointStatuses' => $pointStatuses,
             'ok' => $_SESSION['flash_ok'] ?? null,
             'error' => $_SESSION['flash_error'] ?? null,
         ]);

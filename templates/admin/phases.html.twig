@@ -22,6 +22,7 @@
     {% for p in phases %}
       {% set count = (apCounts[p.idPhaseCampagne] ?? 0) %}
       {% set betStatus = (betStatuses[p.idPhaseCampagne] ?? {}) %}
+      {% set pointStatus = (pointStatuses[p.idPhaseCampagne] ?? {}) %}
       <li>#{{ p.idPhaseCampagne }} &mdash; {{ p.ordre }} &mdash; {{ p.libelle }} &mdash; {{ p.typeLibelle }} &mdash; Limite: {{ p.dateheureLimite }} &mdash;
         <a href="/admin/phases/{{ p.idPhaseCampagne }}/a-parier">G&eacute;rer AParier</a> &mdash;
         <a href="/admin/phases/{{ p.idPhaseCampagne }}/calculs">Calculs de points</a> &mdash;
@@ -112,6 +113,72 @@
                 </tbody>
               </table>
             </details>
+          {% endif %}
+        </div>
+
+        <div style="margin:.4rem 0 .8rem 1rem">
+          <strong>&Eacute;tat des points :</strong>
+          {% if (pointStatus.participants ?? [])|length == 0 %}
+            aucun participant inscrit
+          {% elseif (pointStatus.calculationCount ?? 0) == 0 %}
+            calcul des points non configur&eacute;
+          {% elseif (pointStatus.itemCount ?? 0) == 0 %}
+            aucun pari configur&eacute;
+          {% else %}
+            {{ pointStatus.officialCount|default(0) }}/{{ pointStatus.itemCount|default(0) }}
+            r&eacute;sultat(s) officiel(s) saisi(s)
+          {% endif %}
+
+          {% if (pointStatus.ranking ?? [])|length > 0 %}
+            <ol style="margin:.35rem 0">
+              {% for participant in pointStatus.ranking %}
+                <li>
+                  {{ participant.pseudo }} :
+                  <strong>{{ participant.total }} point{% if participant.total != 1 %}s{% endif %}</strong>
+                </li>
+              {% endfor %}
+            </ol>
+
+            {% if (pointStatus.items ?? [])|length > 0 %}
+              <details>
+                <summary>Voir le d&eacute;tail des points par pari</summary>
+                <table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse; margin-top:.4rem">
+                  <thead>
+                    <tr>
+                      <th>&Agrave; parier</th>
+                      <th>R&eacute;sultat officiel</th>
+                      {% for participant in pointStatus.participants %}
+                        <th>{{ participant.pseudo }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in pointStatus.items %}
+                      {% set official = pointStatus.official[item.idAParier] ?? {} %}
+                      <tr>
+                        <td>{{ item.libellePari }}</td>
+                        <td style="text-align:center">
+                          {{ official[1]|default('') }}
+                          {% if official[1] is defined or official[2] is defined %}&mdash;{% endif %}
+                          {{ official[2]|default('') }}
+                        </td>
+                        {% for participant in pointStatus.participants %}
+                          {% set bet = pointStatus.cells[item.idAParier][participant.idUtilisateur] ?? '' %}
+                          {% set earned = pointStatus.points[item.idAParier][participant.idUtilisateur] ?? 0 %}
+                          <td style="text-align:center">
+                            {% if bet %}
+                              <strong>{{ earned }} pt{% if earned != 1 %}s{% endif %}</strong>
+                            {% else %}
+                              -
+                            {% endif %}
+                          </td>
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </details>
+            {% endif %}
           {% endif %}
         </div>
       </li>

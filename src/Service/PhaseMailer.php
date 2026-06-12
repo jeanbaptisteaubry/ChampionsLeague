@@ -19,7 +19,7 @@ final class PhaseMailer
     /**
      * Compute phase summary arrays similar to ParieurController::resultatsPhase
      */
-    private static function computeSummary(int $idPhase): array
+    public static function computeSummary(int $idPhase): array
     {
         $phases = new PhaseCampagneModele();
         $campagnes = new CampagnePariModele();
@@ -77,10 +77,10 @@ final class PhaseMailer
                 }
                 $resVals = $official[$idA] ?? [];
                 $earned = 0;
-                $b1 = isset($betVals[1]) ? (int)$betVals[1] : null;
-                $b2 = isset($betVals[2]) ? (int)$betVals[2] : null;
-                $r1 = isset($resVals[1]) ? (int)$resVals[1] : null;
-                $r2 = isset($resVals[2]) ? (int)$resVals[2] : null;
+                $b1 = isset($betVals[1]) && trim((string)$betVals[1]) !== '' ? (int)$betVals[1] : null;
+                $b2 = isset($betVals[2]) && trim((string)$betVals[2]) !== '' ? (int)$betVals[2] : null;
+                $r1 = isset($resVals[1]) && trim((string)$resVals[1]) !== '' ? (int)$resVals[1] : null;
+                $r2 = isset($resVals[2]) && trim((string)$resVals[2]) !== '' ? (int)$resVals[2] : null;
                 foreach ($calc as $c) {
                     $lib = (string)$c['libelle']; $nbp = (int)$c['nbPoint'];
                     if ($lib === '1N2') {
@@ -160,4 +160,3 @@ final class PhaseMailer
         return [$sent, $failed];
     }
 }
-
