@@ -41,4 +41,13 @@ final class PhaseParieurVerrouModele
         $stmt->execute([':p' => $idPhaseCampagne]);
         return (int)$stmt->fetchColumn();
     }
+
+    public function listUserIdsByPhase(int $idPhaseCampagne): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT `idParieur` FROM `PhaseParieurVerrou` WHERE `idPhaseCampagne`=:p'
+        );
+        $stmt->execute([':p' => $idPhaseCampagne]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+    }
 }

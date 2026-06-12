@@ -9,6 +9,7 @@ use App\Modele\InscriptionPariModele;
 use App\Modele\PariModele;
 use App\Modele\PhaseCampagneModele;
 use App\Modele\PhaseCalculPointModele;
+use App\Modele\PhaseParieurVerrouModele;
 use App\Modele\ReponsePariModele;
 use App\Service\Mailer;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -28,11 +29,18 @@ final class PhaseMailer
         $paris = new PariModele();
         $reponses = new ReponsePariModele();
         $phaseCalc = new PhaseCalculPointModele();
+        $locks = new PhaseParieurVerrouModele();
 
         $phase = $phases->findById($idPhase);
         if (!$phase) { return []; }
         $campagne = $campagnes->findById((int)$phase['idCampagnePari']);
         $participants = $inscriptions->listUsersByCampagne((int)$phase['idCampagnePari']);
+        $lockedUserIds = array_fill_keys($locks->listUserIdsByPhase($idPhase), true);
+        $participants = array_values(array_filter(
+            $participants,
+            static fn(array $participant): bool =>
+                isset($lockedUserIds[(int)$participant['idUtilisateur']])
+        ));
         $items = $aParier->findByPhase($idPhase);
 
         // Cells: user bets per item (as string "v1 — v2")
