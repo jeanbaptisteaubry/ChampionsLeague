@@ -9,8 +9,9 @@ final class PointCalculator
      * Rules:
      * - 1N2 compares only the score tendency.
      * - scoreExact compares only the exact score.
-     * - qualifieSiN compares the final qualified team on every match.
-     *   The third value is used only when the score is a draw.
+     * - qualifieSiN compares the selected qualified team on every match.
+     *   Example: a draw bet with home qualified still earns qualification
+     *   points if home wins during regular time.
      * - finalistesChampion gives points for each finalist found, and double
      *   points when the champion is also correct.
      */
@@ -36,7 +37,7 @@ final class PointCalculator
                     $earned += $points;
                 }
             } elseif ($lib === 'qualifieSiN') {
-                $betQualifier = self::qualifier($betVals);
+                $betQualifier = self::selectedQualifier($betVals);
                 $resultQualifier = self::qualifier($resultVals);
                 if ($betQualifier !== null && $resultQualifier !== null && $betQualifier === $resultQualifier) {
                     $earned += $points;
@@ -64,6 +65,11 @@ final class PointCalculator
         }
 
         return self::qualifierValue($values[3] ?? null);
+    }
+
+    private static function selectedQualifier(array $values): ?int
+    {
+        return self::qualifierValue($values[3] ?? null) ?? self::qualifier($values);
     }
 
     private static function intValue(array $values, int $number): ?int
