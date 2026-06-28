@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>V&eacute;rification API-Football &mdash; {{ campagne.libelle }} &mdash; {{ phase.libelle }}</h1>
+  <p>
+    <a href="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier">&larr; Retour aux paris de la phase</a>
+  </p>
+
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  {% if apiError %}<p class="flash-err">{{ apiError }}</p>{% endif %}
+
+  <form method="get" action="/admin/phases/{{ phase.idPhaseCampagne }}/api-football">
+    <label>Du <input type="date" name="from" value="{{ from }}" required></label>
+    <label>Au <input type="date" name="to" value="{{ to }}" required></label>
+    <label>Comp&eacute;tition API <input type="number" name="league" value="{{ league }}" min="1" required></label>
+    <label>Saison <input type="number" name="season" value="{{ season }}" min="2000" max="2100" required></label>
+    <button type="submit">Rechercher les matchs</button>
+  </form>
+
+  {% set requests = apiStatus.requests ?? {} %}
+  {% if requests.current is defined and requests.limit_day is defined %}
+    <p style="color:#555">
+      Requ&ecirc;tes API utilis&eacute;es aujourd'hui :
+      {{ requests.current }}/{{ requests.limit_day }}
+    </p>
+  {% endif %}
+
+  {% if not apiError %}
+    <p>{{ fixtures|length }} rencontre(s) trouv&eacute;e(s) entre {{ from }} et {{ to }}.</p>
+
+    {% if items|length == 0 %}
+      <p>Aucun &eacute;l&eacute;ment &agrave; parier dans cette phase.</p>
+    {% else %}
+      <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/api-football/import" onsubmit="return confirm('Importer les scores selectionnes ? Les resultats existants seront remplaces.');">
+        <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+        <input type="hidden" name="from" value="{{ from }}">
+        <input type="hidden" name="to" value="{{ to }}">
+        <input type="hidden" name="league" value="{{ league }}">
+        <input type="hidden" name="season" value="{{ season }}">
+
+        <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; margin-top:1rem">
+          <thead>
+            <tr>
+              <th>Pari local</th>
+              <th>Rencontre API-Football</th>
+              <th>Date</th>
+              <th>&Eacute;tat</th>
+              <th>Score</th>
+              <th>Confiance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              {% set proposal = matches[item.idAParier] ?? {} %}
+              {% set proposedFixture = proposal.fixture ?? null %}
+              <tr>
+                <td>{{ item.libellePari }}</td>
+                <td>
+                  <select name="fixtures[{{ item.idAParier }}]">
+                    <option value="">Ne pas importer</option>
+                    {% for fixture in fixtures %}
+                      {% set fixtureId = fixture.fixture.id %}
+                      {% set selected = proposedFixture and proposedFixture.fixture.id == fixtureId %}
+                      <option value="{{ fixtureId }}" {% if selected %}selected{% endif %}>
+                        {{ fixture.teams.home.name }} - {{ fixture.teams.away.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>
+                  {% if proposedFixture %}
+                    {{ proposedFixture.fixture.date|date('d/m/Y H:i', 'Europe/Paris') }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  {% if proposedFixture %}
+                    {{ proposedFixture.fixture.status.short }}
+                    &mdash; {{ proposedFixture.fixture.status.long }}
+                  {% else %}
+                    Non trouv&eacute;
+                  {% endif %}
+                </td>
+                <td style="text-align:center">
+                  {% if proposedFixture and proposedFixture.goals.home is not null and proposedFixture.goals.away is not null %}
+                    {{ proposedFixture.goals.home }} - {{ proposedFixture.goals.away }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td style="text-align:center">{{ proposal.confidence|default(0) }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <p>Seules les rencontres termin&eacute;es (`FT`, `AET` ou `PEN`) seront import&eacute;es.</p>
+        <button type="submit">Importer les scores s&eacute;lectionn&eacute;s</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}

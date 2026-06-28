@@ -4,6 +4,10 @@
   <p>
     <a href="/admin/campagnes/{{ campagne.idCampagnePari }}/phases">← Retour aux phases de la campagne</a>
   </p>
+  <p>
+    <a href="/admin/phases/{{ phase.idPhaseCampagne }}/api-football">V&eacute;rifier les r&eacute;sultats avec API-Football</a>
+    &mdash; <a href="/admin/phases/{{ phase.idPhaseCampagne }}/thesportsdb">V&eacute;rifier avec TheSportsDB</a>
+  </p>
   {% if type %}<p>Type de phase: {{ type.libelle }}</p>{% endif %}
   {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
   {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}

@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+{% block body %}
+  <h1>V&eacute;rification TheSportsDB &mdash; {{ campagne.libelle }} &mdash; {{ phase.libelle }}</h1>
+  <p><a href="/admin/phases/{{ phase.idPhaseCampagne }}/a-parier">&larr; Retour aux paris de la phase</a></p>
+
+  {% if ok %}<p class="flash-ok">{{ ok }}</p>{% endif %}
+  {% if error %}<p class="flash-err">{{ error }}</p>{% endif %}
+  {% if apiError %}<p class="flash-err">{{ apiError }}</p>{% endif %}
+
+  <p style="padding:.6rem; background:#fff3cd; border:1px solid #b36b00">
+    TheSportsDB est une base collaborative. V&eacute;rifiez les &eacute;quipes et le score avant chaque import.
+  </p>
+
+  <form method="get" action="/admin/phases/{{ phase.idPhaseCampagne }}/thesportsdb">
+    <label>Du <input type="date" name="from" value="{{ from }}" required></label>
+    <label>Au <input type="date" name="to" value="{{ to }}" required></label>
+    <label>Ligue TheSportsDB <input type="number" name="league" value="{{ league }}" min="1" required></label>
+    <label>Saison <input name="season" value="{{ season }}" required></label>
+    <button type="submit">Rechercher les matchs</button>
+  </form>
+  <p style="color:#555">Coupe du monde 2026 : ligue <code>4429</code>, saison <code>2026</code>.</p>
+
+  {% if not apiError %}
+    <p>{{ events|length }} rencontre(s) trouv&eacute;e(s) entre {{ from }} et {{ to }}.</p>
+    {% if items|length == 0 %}
+      <p>Aucun &eacute;l&eacute;ment &agrave; parier dans cette phase.</p>
+    {% else %}
+      <form method="post" action="/admin/phases/{{ phase.idPhaseCampagne }}/thesportsdb/import" onsubmit="return confirm('Importer les scores selectionnes depuis TheSportsDB ?');">
+        <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+        <input type="hidden" name="from" value="{{ from }}">
+        <input type="hidden" name="to" value="{{ to }}">
+        <input type="hidden" name="league" value="{{ league }}">
+        <input type="hidden" name="season" value="{{ season }}">
+
+        <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; margin-top:1rem">
+          <thead>
+            <tr>
+              <th>Pari local</th>
+              <th>Rencontre TheSportsDB</th>
+              <th>Date</th>
+              <th>Score</th>
+              <th>Confiance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              {% set proposal = matches[item.idAParier] ?? {} %}
+              {% set proposedEvent = proposal.event ?? null %}
+              <tr>
+                <td>{{ item.libellePari }}</td>
+                <td>
+                  <select name="events[{{ item.idAParier }}]">
+                    <option value="">Ne pas importer</option>
+                    {% for event in events %}
+                      {% set selected = proposedEvent and proposedEvent.idEvent == event.idEvent %}
+                      <option value="{{ event.idEvent }}" {% if selected %}selected{% endif %}>
+                        {{ event.strHomeTeam }} - {{ event.strAwayTeam }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td>{% if proposedEvent %}{{ proposedEvent.dateEvent }} {{ proposedEvent.strTime }}{% else %}-{% endif %}</td>
+                <td style="text-align:center">
+                  {% if proposedEvent and proposedEvent.intHomeScore is not null and proposedEvent.intAwayScore is not null %}
+                    {{ proposedEvent.intHomeScore }} - {{ proposedEvent.intAwayScore }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td style="text-align:center">{{ proposal.confidence|default(0) }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <button type="submit" style="margin-top:.75rem">Importer les scores s&eacute;lectionn&eacute;s</button>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endblock %}

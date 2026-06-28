@@ -5,6 +5,7 @@ vendor/*
 composer.lock
 paramBDD.txt
 paramMAIL.txt
+paramAPI.txt
 paramBDD.txt
 composer.phar
 composer-setup.php

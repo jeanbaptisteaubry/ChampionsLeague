@@ -192,6 +192,10 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel, $adminRemind
     $group->get('/phases/{idPhase}/a-parier', [$admin, 'listAParier']);
     $group->post('/phases/{idPhase}/a-parier', [$admin, 'createAParier']);
     $group->post('/phases/{idPhase}/a-parier/resultats', [$admin, 'setResultatsBatch']);
+    $group->get('/phases/{idPhase}/api-football', [$admin, 'apiFootballResults']);
+    $group->post('/phases/{idPhase}/api-football/import', [$admin, 'importApiFootballResults']);
+    $group->get('/phases/{idPhase}/thesportsdb', [$admin, 'theSportsDbResults']);
+    $group->post('/phases/{idPhase}/thesportsdb/import', [$admin, 'importTheSportsDbResults']);
     // Rappels / Récapitulatif par email (manuel)
     $group->post('/phases/{idPhase}/reminder', [$adminReminder, 'sendReminderPhase']);
     $group->get('/phases/{idPhase}/reminder', function ($request, $response, $args) use ($phaseModel) {

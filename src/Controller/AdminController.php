@@ -18,6 +18,8 @@ use App\Modele\PhaseParieurVerrouModele;
 use App\Modele\PariModele;
 use App\Service\Mailer;
 use App\Service\PhaseMailer;
+use App\Service\ApiFootballClient;
+use App\Service\TheSportsDbClient;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
@@ -755,6 +757,286 @@ final class AdminController
         unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
         $response->getBody()->write($html);
         return $response;
+    }
+
+    public function apiFootballResults(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $campagne = $this->campagnes->findById((int)$phase['idCampagnePari']);
+        $items = $this->aParier->findByPhase($idPhase);
+        [$defaultFrom, $defaultTo, $defaultSeason] = $this->apiFootballDefaults($phase);
+        $query = $request->getQueryParams();
+        $from = $this->validDate((string)($query['from'] ?? '')) ?? $defaultFrom;
+        $to = $this->validDate((string)($query['to'] ?? '')) ?? $defaultTo;
+        $league = max(1, (int)($query['league'] ?? 2));
+        $season = max(2000, (int)($query['season'] ?? $defaultSeason));
+
+        $fixtures = [];
+        $matches = [];
+        $apiStatus = [];
+        $apiError = null;
+        try {
+            $client = new ApiFootballClient();
+            $statusPayload = $client->status();
+            $apiStatus = is_array($statusPayload['response'] ?? null)
+                ? $statusPayload['response']
+                : [];
+            $fixtures = $client->fixtures($from, $to, $league, $season);
+            $matches = $client->matchItems($items, $fixtures);
+        } catch (\Throwable $e) {
+            $apiError = $e->getMessage();
+        }
+
+        $html = $this->twig->render('admin/api_football.html.twig', [
+            'title' => 'Verification API-Football',
+            'phase' => $phase,
+            'campagne' => $campagne,
+            'items' => $items,
+            'fixtures' => $fixtures,
+            'matches' => $matches,
+            'apiStatus' => $apiStatus,
+            'apiError' => $apiError,
+            'from' => $from,
+            'to' => $to,
+            'league' => $league,
+            'season' => $season,
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
+        ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function importApiFootballResults(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response
+                ->withHeader('Location', "/admin/phases/$idPhase/api-football")
+                ->withStatus(302);
+        }
+
+        [$defaultFrom, $defaultTo, $defaultSeason] = $this->apiFootballDefaults($phase);
+        $from = $this->validDate((string)($data['from'] ?? '')) ?? $defaultFrom;
+        $to = $this->validDate((string)($data['to'] ?? '')) ?? $defaultTo;
+        $league = max(1, (int)($data['league'] ?? 2));
+        $season = max(2000, (int)($data['season'] ?? $defaultSeason));
+        $selected = is_array($data['fixtures'] ?? null) ? $data['fixtures'] : [];
+
+        try {
+            $client = new ApiFootballClient();
+            $fixtures = $client->fixtures($from, $to, $league, $season);
+            $fixturesById = [];
+            foreach ($fixtures as $fixture) {
+                $fixtureId = (int)($fixture['fixture']['id'] ?? 0);
+                if ($fixtureId > 0) {
+                    $fixturesById[$fixtureId] = $fixture;
+                }
+            }
+
+            $allowedItems = [];
+            foreach ($this->aParier->findByPhase($idPhase) as $item) {
+                $allowedItems[(int)$item['idAParier']] = true;
+            }
+
+            $imported = 0;
+            $skipped = 0;
+            foreach ($selected as $rawItemId => $rawFixtureId) {
+                $itemId = (int)$rawItemId;
+                $fixtureId = (int)$rawFixtureId;
+                $fixture = $fixturesById[$fixtureId] ?? null;
+                if (!isset($allowedItems[$itemId]) || !$fixture || !ApiFootballClient::isFinished($fixture)) {
+                    if ($fixtureId > 0) { $skipped++; }
+                    continue;
+                }
+
+                $this->reponses->setResult($itemId, 1, (string)$fixture['goals']['home']);
+                $this->reponses->setResult($itemId, 2, (string)$fixture['goals']['away']);
+                $imported++;
+            }
+
+            $_SESSION['flash_ok'] = "$imported resultat(s) importe(s) depuis API-Football";
+            if ($skipped > 0) {
+                $_SESSION['flash_ok'] .= " ($skipped ignore(s): non termine(s) ou invalide(s))";
+            }
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        $query = http_build_query([
+            'from' => $from,
+            'to' => $to,
+            'league' => $league,
+            'season' => $season,
+        ]);
+        return $response
+            ->withHeader('Location', "/admin/phases/$idPhase/api-football?$query")
+            ->withStatus(302);
+    }
+
+    private function apiFootballDefaults(array $phase): array
+    {
+        try {
+            $deadline = new \DateTimeImmutable((string)$phase['dateheureLimite']);
+        } catch (\Throwable $e) {
+            $deadline = new \DateTimeImmutable('now');
+        }
+        $season = (int)$deadline->format('Y');
+        if ((int)$deadline->format('n') < 7) {
+            $season--;
+        }
+
+        return [
+            $deadline->format('Y-m-d'),
+            $deadline->modify('+3 days')->format('Y-m-d'),
+            $season,
+        ];
+    }
+
+    private function validDate(string $value): ?string
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $date && $date->format('Y-m-d') === $value ? $value : null;
+    }
+
+    public function theSportsDbResults(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $campagne = $this->campagnes->findById((int)$phase['idCampagnePari']);
+        $items = $this->aParier->findByPhase($idPhase);
+        [$defaultFrom, $defaultTo] = $this->apiFootballDefaults($phase);
+        $defaultSeason = substr($defaultFrom, 0, 4);
+        $query = $request->getQueryParams();
+        $from = $this->validDate((string)($query['from'] ?? '')) ?? $defaultFrom;
+        $to = $this->validDate((string)($query['to'] ?? '')) ?? $defaultTo;
+        $league = max(1, (int)($query['league'] ?? 4429));
+        $season = trim((string)($query['season'] ?? $defaultSeason));
+
+        $events = [];
+        $matches = [];
+        $apiError = null;
+        try {
+            $client = new TheSportsDbClient();
+            $events = $client->seasonEvents($league, $season, $from, $to);
+            $matches = $client->matchItems($items, $events);
+        } catch (\Throwable $e) {
+            $apiError = $e->getMessage();
+        }
+
+        $html = $this->twig->render('admin/thesportsdb.html.twig', [
+            'title' => 'Verification TheSportsDB',
+            'phase' => $phase,
+            'campagne' => $campagne,
+            'items' => $items,
+            'events' => $events,
+            'matches' => $matches,
+            'apiError' => $apiError,
+            'from' => $from,
+            'to' => $to,
+            'league' => $league,
+            'season' => $season,
+            'ok' => $_SESSION['flash_ok'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null,
+        ]);
+        unset($_SESSION['flash_ok'], $_SESSION['flash_error']);
+        $response->getBody()->write($html);
+        return $response;
+    }
+
+    public function importTheSportsDbResults(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        if (!$phase) {
+            $_SESSION['flash_error'] = 'Phase introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response
+                ->withHeader('Location', "/admin/phases/$idPhase/thesportsdb")
+                ->withStatus(302);
+        }
+
+        [$defaultFrom, $defaultTo] = $this->apiFootballDefaults($phase);
+        $defaultSeason = substr($defaultFrom, 0, 4);
+        $from = $this->validDate((string)($data['from'] ?? '')) ?? $defaultFrom;
+        $to = $this->validDate((string)($data['to'] ?? '')) ?? $defaultTo;
+        $league = max(1, (int)($data['league'] ?? 4429));
+        $season = trim((string)($data['season'] ?? $defaultSeason));
+        $selected = is_array($data['events'] ?? null) ? $data['events'] : [];
+
+        try {
+            $events = (new TheSportsDbClient())->seasonEvents($league, $season, $from, $to);
+            $eventsById = [];
+            foreach ($events as $event) {
+                $eventId = (int)($event['idEvent'] ?? 0);
+                if ($eventId > 0) {
+                    $eventsById[$eventId] = $event;
+                }
+            }
+
+            $allowedItems = [];
+            foreach ($this->aParier->findByPhase($idPhase) as $item) {
+                $allowedItems[(int)$item['idAParier']] = true;
+            }
+
+            $imported = 0;
+            $skipped = 0;
+            foreach ($selected as $rawItemId => $rawEventId) {
+                $itemId = (int)$rawItemId;
+                $eventId = (int)$rawEventId;
+                $event = $eventsById[$eventId] ?? null;
+                if (!isset($allowedItems[$itemId]) || !$event || !TheSportsDbClient::hasScore($event)) {
+                    if ($eventId > 0) { $skipped++; }
+                    continue;
+                }
+
+                $this->reponses->setResult($itemId, 1, (string)$event['intHomeScore']);
+                $this->reponses->setResult($itemId, 2, (string)$event['intAwayScore']);
+                $imported++;
+            }
+
+            $_SESSION['flash_ok'] = "$imported resultat(s) importe(s) depuis TheSportsDB";
+            if ($skipped > 0) {
+                $_SESSION['flash_ok'] .= " ($skipped ignore(s): score absent ou selection invalide)";
+            }
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        $query = http_build_query([
+            'from' => $from,
+            'to' => $to,
+            'league' => $league,
+            'season' => $season,
+        ]);
+        return $response
+            ->withHeader('Location', "/admin/phases/$idPhase/thesportsdb?$query")
+            ->withStatus(302);
     }
 
     public function createAParier(Request $request, Response $response, array $args): Response
