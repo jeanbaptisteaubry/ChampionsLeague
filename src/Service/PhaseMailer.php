@@ -7,19 +7,16 @@ use App\Modele\AParierModele;
 use App\Modele\CampagnePariModele;
 use App\Modele\InscriptionPariModele;
 use App\Modele\PariModele;
-use App\Modele\PhaseCampagneModele;
 use App\Modele\PhaseCalculPointModele;
+use App\Modele\PhaseCampagneModele;
 use App\Modele\PhaseParieurVerrouModele;
 use App\Modele\ReponsePariModele;
-use App\Service\Mailer;
+use App\Modele\TypePhaseModele;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Twig\Environment;
 
 final class PhaseMailer
 {
-    /**
-     * Compute phase summary arrays similar to ParieurController::resultatsPhase
-     */
     public static function computeSummary(int $idPhase): array
     {
         $phases = new PhaseCampagneModele();
@@ -30,9 +27,13 @@ final class PhaseMailer
         $reponses = new ReponsePariModele();
         $phaseCalc = new PhaseCalculPointModele();
         $locks = new PhaseParieurVerrouModele();
+        $typePhase = new TypePhaseModele();
 
         $phase = $phases->findById($idPhase);
-        if (!$phase) { return []; }
+        if (!$phase) {
+            return [];
+        }
+
         $campagne = $campagnes->findById((int)$phase['idCampagnePari']);
         $participants = $inscriptions->listUsersByCampagne((int)$phase['idCampagnePari']);
         $lockedUserIds = array_fill_keys($locks->listUserIdsByPhase($idPhase), true);
@@ -42,65 +43,53 @@ final class PhaseMailer
                 isset($lockedUserIds[(int)$participant['idUtilisateur']])
         ));
         $items = $aParier->findByPhase($idPhase);
+        $type = $typePhase->findById((int)$phase['idTypePhase']);
+        $nbValues = max(1, (int)($type['nbValeurParPari'] ?? 2));
 
-        // Cells: user bets per item (as string "v1 — v2")
         $cells = [];
-        foreach ($participants as $u) {
-            $uid = (int)$u['idUtilisateur'];
+        $betsByItemAndUser = [];
+        foreach ($participants as $user) {
+            $uid = (int)$user['idUtilisateur'];
             $bets = $paris->findForUserAndPhase($uid, $idPhase);
             $byItem = [];
-            foreach ($bets as $b) { $byItem[(int)$b['idAParier']] = ($b['valeurs'] ?? []); }
-            foreach ($items as $it) {
-                $idA = (int)$it['idAParier'];
-                $vals = $byItem[$idA] ?? [];
+            foreach ($bets as $bet) {
+                $byItem[(int)$bet['idAParier']] = $bet['valeurs'] ?? [];
+            }
+            foreach ($items as $item) {
+                $idA = (int)$item['idAParier'];
+                $values = $byItem[$idA] ?? [];
+                $betsByItemAndUser[$idA][$uid] = $values;
                 $ordered = [];
-                for ($i=1; $i<=2; $i++) { if (isset($vals[$i])) { $ordered[] = (string)$vals[$i]; } }
-                $cells[$idA][$uid] = implode(' — ', $ordered);
+                for ($i = 1; $i <= $nbValues; $i++) {
+                    if (isset($values[$i]) && trim((string)$values[$i]) !== '') {
+                        $ordered[] = (string)$values[$i];
+                    }
+                }
+                $cells[$idA][$uid] = implode(' | ', $ordered);
             }
         }
 
-        // Official results
         $official = [];
-        foreach ($items as $it) {
-            $rid = (int)$it['idAParier'];
-            $res = $reponses->findByAParier($rid);
-            $rvals = [];
-            foreach ($res as $r) { $rvals[(int)$r['numeroValeur']] = $r['valeurResultat']; }
-            $official[$rid] = $rvals;
+        foreach ($items as $item) {
+            $idA = (int)$item['idAParier'];
+            $official[$idA] = [];
+            foreach ($reponses->findByAParier($idA) as $response) {
+                $official[$idA][(int)$response['numeroValeur']] = $response['valeurResultat'];
+            }
         }
 
-        // Points per item per user and totals
         $calc = $phaseCalc->listByPhase($idPhase);
         $points = [];
         $totals = [];
-        foreach ($items as $it) {
-            $idA = (int)$it['idAParier'];
-            foreach ($participants as $u) {
-                $uid = (int)$u['idUtilisateur'];
-                $betVals = [];
-                if (isset($cells[$idA][$uid]) && $cells[$idA][$uid] !== '') {
-                    $parts = explode(' — ', $cells[$idA][$uid]);
-                    if (isset($parts[0]) && $parts[0] !== '') { $betVals[1] = (int)$parts[0]; }
-                    if (isset($parts[1]) && $parts[1] !== '') { $betVals[2] = (int)$parts[1]; }
-                }
-                $resVals = $official[$idA] ?? [];
-                $earned = 0;
-                $b1 = isset($betVals[1]) && trim((string)$betVals[1]) !== '' ? (int)$betVals[1] : null;
-                $b2 = isset($betVals[2]) && trim((string)$betVals[2]) !== '' ? (int)$betVals[2] : null;
-                $r1 = isset($resVals[1]) && trim((string)$resVals[1]) !== '' ? (int)$resVals[1] : null;
-                $r2 = isset($resVals[2]) && trim((string)$resVals[2]) !== '' ? (int)$resVals[2] : null;
-                foreach ($calc as $c) {
-                    $lib = (string)$c['libelle']; $nbp = (int)$c['nbPoint'];
-                    if ($lib === '1N2') {
-                        if ($b1 !== null && $b2 !== null && $r1 !== null && $r2 !== null) {
-                            if (($b1 <=> $b2) === ($r1 <=> $r2)) { $earned += $nbp; }
-                        }
-                    } elseif ($lib === 'scoreExact') {
-                        if ($b1 !== null && $b2 !== null && $r1 !== null && $r2 !== null) {
-                            if ($b1 === $r1 && $b2 === $r2) { $earned += $nbp; }
-                        }
-                    }
-                }
+        foreach ($items as $item) {
+            $idA = (int)$item['idAParier'];
+            foreach ($participants as $user) {
+                $uid = (int)$user['idUtilisateur'];
+                $earned = PointCalculator::earned(
+                    $betsByItemAndUser[$idA][$uid] ?? [],
+                    $official[$idA] ?? [],
+                    $calc
+                );
                 $points[$idA][$uid] = $earned;
                 $totals[$uid] = ($totals[$uid] ?? 0) + $earned;
             }
@@ -119,7 +108,7 @@ final class PhaseMailer
     }
 
     /**
-     * Send recap email (with HTML table) to all enrolled users of the phase's campagne.
+     * Send recap email to all enrolled users of the phase campaign.
      * Returns [sent, failed].
      */
     public static function sendPhaseSummaryToAll(Request $request, Environment $twig, int $idPhase): array
@@ -128,41 +117,57 @@ final class PhaseMailer
         $inscriptions = new InscriptionPariModele();
 
         $phase = $phases->findById($idPhase);
-        if (!$phase) { return [0, 0]; }
+        if (!$phase) {
+            return [0, 0];
+        }
+
         $idCampagne = (int)$phase['idCampagnePari'];
         $destinataires = $inscriptions->listUsersByCampagne($idCampagne);
-        if (empty($destinataires)) { return [0, 0]; }
+        if ($destinataires === []) {
+            return [0, 0];
+        }
 
         $data = self::computeSummary($idPhase);
-        if (empty($data)) { return [0, 0]; }
+        if ($data === []) {
+            return [0, 0];
+        }
 
         $uri = $request->getUri();
         $host = $uri->getHost();
         $scheme = $uri->getScheme() ?: 'http';
         $port = $uri->getPort();
-        $base = $scheme . '://' . $host . ($port && !in_array($port, [80, 443]) ? ':' . $port : '');
+        $base = $scheme . '://' . $host . ($port && !in_array($port, [80, 443], true) ? ':' . $port : '');
         $link = $base . '/parieur/phases/' . $idPhase . '/resultats';
 
         $campLib = (string)($data['campagne']['libelle'] ?? '');
         $phaseLib = (string)($data['phase']['libelle'] ?? '');
-        $subject = 'Tous les paris sont verrouillés — ' . ($campLib !== '' ? ($campLib . ' — ') : '') . 'Phase "' . $phaseLib . '"';
+        $subject = 'Tous les paris sont verrouilles - '
+            . ($campLib !== '' ? ($campLib . ' - ') : '')
+            . 'Phase "' . $phaseLib . '"';
 
-        $sent = 0; $failed = 0;
-        foreach ($destinataires as $u) {
-            $name = (string)($u['pseudo'] ?? '');
-            $email = (string)($u['mail'] ?? '');
-            if ($email === '') { continue; }
+        $sent = 0;
+        $failed = 0;
+        foreach ($destinataires as $user) {
+            $name = (string)($user['pseudo'] ?? '');
+            $email = (string)($user['mail'] ?? '');
+            if ($email === '') {
+                continue;
+            }
 
             $html = $twig->render('email/phase_locked.html.twig', $data + [
                 'recipient' => $name,
                 'resultLink' => $link,
             ]);
             $text = 'Bonjour ' . ($name !== '' ? $name : 'parieur') . ",\n"
-                . 'Tous les paris sont verrouillés pour la phase "' . $phaseLib . '"'
+                . 'Tous les paris sont verrouilles pour la phase "' . $phaseLib . '"'
                 . ($campLib !== '' ? ' de la campagne "' . $campLib . '"' : '') . ".\n"
-                . 'Consultez le récapitulatif ici: ' . $link . "\n";
+                . 'Consultez le recapitulatif ici: ' . $link . "\n";
 
-            if (Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text)) { $sent++; } else { $failed++; }
+            if (Mailer::send($email, $name !== '' ? $name : $email, $subject, $html, $text)) {
+                $sent++;
+            } else {
+                $failed++;
+            }
         }
 
         return [$sent, $failed];

@@ -16,6 +16,7 @@ use App\Modele\PhaseCalculPointModele;
 use App\Modele\PhaseParieurVerrouModele;
 use App\Modele\ParametreModele;
 use App\Service\PhaseMailer;
+use App\Service\PointCalculator;
 
 final class ParieurController
 {
@@ -238,15 +239,7 @@ final class ParieurController
                     $idA = (int)$it['idAParier'];
                     $vals = $byItem[$idA] ?? [];
                     $rvals = $official[$idA] ?? [];
-                    $b1 = isset($vals[1]) ? (int)$vals[1] : null;
-                    $b2 = isset($vals[2]) ? (int)$vals[2] : null;
-                    $r1 = isset($rvals[1]) ? (int)$rvals[1] : null;
-                    $r2 = isset($rvals[2]) ? (int)$rvals[2] : null;
-                    foreach ($calc as $c) {
-                        $lib = (string)$c['libelle']; $nbp=(int)$c['nbPoint'];
-                        if ($lib==='1N2') { if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) { if (($b1<=>$b2)===($r1<=>$r2)) $earnedPhase += $nbp; } }
-                        elseif ($lib==='scoreExact') { if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) { if ($b1===$r1 && $b2===$r2) $earnedPhase += $nbp; } }
-                    }
+                    $earnedPhase += PointCalculator::earned($vals, $rvals, $calc);
                 }
                 $matrix[$idPhase][$uid] = $earnedPhase;
                 $totalsByUser[$uid] = ($totalsByUser[$uid] ?? 0) + $earnedPhase;
@@ -307,23 +300,7 @@ final class ParieurController
                     $idA = (int)$it['idAParier'];
                     $betVals = $byItem[$idA] ?? [];
                     $resVals = $official[$idA] ?? [];
-                    $b1 = isset($betVals[1]) ? (int)$betVals[1] : null;
-                    $b2 = isset($betVals[2]) ? (int)$betVals[2] : null;
-                    $r1 = isset($resVals[1]) ? (int)$resVals[1] : null;
-                    $r2 = isset($resVals[2]) ? (int)$resVals[2] : null;
-                    $earned = 0;
-                    foreach ($calc as $c) {
-                        $lib = (string)$c['libelle']; $nbp=(int)$c['nbPoint'];
-                        if ($lib==='1N2') {
-                            if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) {
-                                if (($b1<=>$b2)===($r1<=>$r2)) $earned += $nbp;
-                            }
-                        } elseif ($lib==='scoreExact') {
-                            if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) {
-                                if ($b1===$r1 && $b2===$r2) $earned += $nbp;
-                            }
-                        }
-                    }
+                    $earned = PointCalculator::earned($betVals, $resVals, $calc);
                     $totals[$uid] = ($totals[$uid] ?? 0) + $earned;
                 }
             }
@@ -513,30 +490,9 @@ final class ParieurController
             foreach ($items as $it) {
                 $idA = (int)$it['idAParier'];
                 $cells[$idA][$uid] = $byItem[$idA]['text'] ?? '';
-                // Calcul des points
-                $earned = 0;
                 $betVals = $byItem[$idA]['vals'] ?? [];
                 $resVals = $official[$idA] ?? [];
-                // On essaie de parser en int
-                $b1 = isset($betVals[1]) ? (int)$betVals[1] : null;
-                $b2 = isset($betVals[2]) ? (int)$betVals[2] : null;
-                $r1 = isset($resVals[1]) ? (int)$resVals[1] : null;
-                $r2 = isset($resVals[2]) ? (int)$resVals[2] : null;
-                foreach ($calc as $c) {
-                    $lib = (string)$c['libelle'];
-                    $nbp = (int)$c['nbPoint'];
-                    if ($lib === '1N2') {
-                        if ($b1 !== null && $b2 !== null && $r1 !== null && $r2 !== null) {
-                            $ps = $b1 <=> $b2; // -1,0,1
-                            $rs = $r1 <=> $r2;
-                            if ($ps === $rs) { $earned += $nbp; }
-                        }
-                    } elseif ($lib === 'scoreExact') {
-                        if ($b1 !== null && $b2 !== null && $r1 !== null && $r2 !== null) {
-                            if ($b1 === $r1 && $b2 === $r2) { $earned += $nbp; }
-                        }
-                    }
-                }
+                $earned = PointCalculator::earned($betVals, $resVals, $calc);
                 $points[$idA][$uid] = $earned;
                 $totals[$uid] = ($totals[$uid] ?? 0) + $earned;
             }
@@ -611,17 +567,7 @@ final class ParieurController
                 $ordered = [];
                 for ($i=1; $i<=$nb; $i++) { if (isset($vals[$i])) { $ordered[] = (string)$vals[$i]; } }
 
-                // Points
-                $earned = 0;
-                $b1 = isset($vals[1]) ? (int)$vals[1] : null;
-                $b2 = isset($vals[2]) ? (int)$vals[2] : null;
-                $r1 = isset($official[$idA][1]) ? (int)$official[$idA][1] : null;
-                $r2 = isset($official[$idA][2]) ? (int)$official[$idA][2] : null;
-                foreach ($calc as $c) {
-                    $lib = (string)$c['libelle']; $nbp=(int)$c['nbPoint'];
-                    if ($lib==='1N2') { if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) { if (($b1<=>$b2)===($r1<=>$r2)) $earned += $nbp; } }
-                    elseif ($lib==='scoreExact') { if ($b1!==null && $b2!==null && $r1!==null && $r2!==null) { if ($b1===$r1 && $b2===$r2) $earned += $nbp; } }
-                }
+                $earned = PointCalculator::earned($vals, $official[$idA] ?? [], $calc);
 
                 $row[] = implode(' | ', $ordered) . ($ordered ? " (".$earned."pt)" : '');
             }
