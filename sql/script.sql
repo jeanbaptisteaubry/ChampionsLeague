@@ -214,5 +214,6 @@ CREATE TABLE `PariValeur` (
 INSERT INTO `TypeResultat` (`idTypeResultat`, `libelle`) VALUES
   (1, '1N2'),
   (2, 'scoreExact'),
-  (3, 'qualifieSiN')
+  (3, 'qualifieSiN'),
+  (4, 'finalistesChampion')
 ON DUPLICATE KEY UPDATE `libelle` = VALUES(`libelle`);

@@ -459,6 +459,10 @@ final class ParieurController
         // Nombre de valeurs pour la phase
         $type = (new \App\Modele\TypePhaseModele())->findById((int)$phase['idTypePhase']);
         $nb = max(1, (int)($type['nbValeurParPari'] ?? 1));
+        $labels = [];
+        foreach ((new \App\Modele\TypePhaseModele())->labels((int)$phase['idTypePhase']) as $row) {
+            $labels[(int)$row['numeroValeur']] = $row['libelle'];
+        }
 
         // PrÃ©parer cellule [idAParier][idUtilisateur] => "val1 | val2 | ..." et points
         $cells = [];
@@ -508,6 +512,8 @@ final class ParieurController
             'official' => $official,
             'points' => $points,
             'totals' => $totals,
+            'nb' => $nb,
+            'labels' => $labels,
         ]);
         $response->getBody()->write($html);
         return $response;
@@ -537,6 +543,10 @@ final class ParieurController
         $participants = $this->inscriptions->listUsersByCampagne($idCampagne);
         $type = (new \App\Modele\TypePhaseModele())->findById((int)$phase['idTypePhase']);
         $nb = max(1, (int)($type['nbValeurParPari'] ?? 1));
+        $labels = [];
+        foreach ((new \App\Modele\TypePhaseModele())->labels((int)$phase['idTypePhase']) as $labelRow) {
+            $labels[(int)$labelRow['numeroValeur']] = $labelRow['libelle'];
+        }
 
         // Results & points reuse
         $official = [];
@@ -551,13 +561,19 @@ final class ParieurController
 
         // CSV header
         $rows = [];
-        $header = ['AParier', 'Resultat1', 'Resultat2'];
+        $header = ['AParier'];
+        for ($i = 1; $i <= $nb; $i++) {
+            $header[] = 'Resultat ' . ($labels[$i] ?? $i);
+        }
         foreach ($participants as $u) { $header[] = $u['pseudo']; }
         $rows[] = $header;
 
         foreach ($items as $it) {
             $idA = (int)$it['idAParier'];
-            $row = [$it['libellePari'], (string)($official[$idA][1] ?? ''), (string)($official[$idA][2] ?? '')];
+            $row = [$it['libellePari']];
+            for ($i = 1; $i <= $nb; $i++) {
+                $row[] = (string)($official[$idA][$i] ?? '');
+            }
             foreach ($participants as $u) {
                 $uid = (int)$u['idUtilisateur'];
                 $bets = $this->paris->findForUserAndPhase($uid, $idPhase);

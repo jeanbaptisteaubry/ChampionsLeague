@@ -78,6 +78,29 @@ final class PariModele
         return (int)$stmt->fetchColumn();
     }
 
+    public function countByPhase(int $idPhaseCampagne): int
+    {
+        $sql = 'SELECT COUNT(*)
+                FROM `Pari` pr
+                JOIN `AParier` a ON pr.`idAParier` = a.`idAParier`
+                WHERE a.`idPhaseCampagne` = :p';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':p' => $idPhaseCampagne]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function countByCampagne(int $idCampagnePari): int
+    {
+        $sql = 'SELECT COUNT(*)
+                FROM `Pari` pr
+                JOIN `AParier` a ON pr.`idAParier` = a.`idAParier`
+                JOIN `PhaseCampagne` pc ON a.`idPhaseCampagne` = pc.`idPhaseCampagne`
+                WHERE pc.`idCampagnePari` = :c';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':c' => $idCampagnePari]);
+        return (int)$stmt->fetchColumn();
+    }
+
     public function listStatusByPhase(int $idCampagnePari, int $idPhaseCampagne, int $expectedValues): array
     {
         $sql = 'SELECT u.`idUtilisateur`, u.`pseudo`,

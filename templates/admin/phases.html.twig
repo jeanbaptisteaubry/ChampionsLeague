@@ -21,6 +21,7 @@
   <ul>
     {% for p in phases %}
       {% set count = (apCounts[p.idPhaseCampagne] ?? 0) %}
+      {% set betCount = (phaseBetCounts[p.idPhaseCampagne] ?? 0) %}
       {% set betStatus = (betStatuses[p.idPhaseCampagne] ?? {}) %}
       {% set pointStatus = (pointStatuses[p.idPhaseCampagne] ?? {}) %}
       <li>#{{ p.idPhaseCampagne }} &mdash; {{ p.ordre }} &mdash; {{ p.libelle }} &mdash; {{ p.typeLibelle }} &mdash; Limite: {{ p.dateheureLimite }} &mdash;
@@ -34,13 +35,13 @@
           <input type="hidden" name="_csrf" value="{{ app.csrf }}">
           <button>Envoyer r&eacute;capitulatif</button>
         </form>
-        {% if count == 0 %}
+        {% if betCount == 0 %}
           <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/delete" style="display:inline" onsubmit="return confirm('Supprimer cette phase ?');">
             <input type="hidden" name="_csrf" value="{{ app.csrf }}">
             <button>Supprimer</button>
           </form>
         {% else %}
-          <em style="color:#888">({{ count }} &agrave; parier)</em>
+          <em style="color:#888">({{ betCount }} pari(s) enregistr&eacute;(s) &mdash; suppression verrouill&eacute;e)</em>
         {% endif %}
 
         <form method="post" action="/admin/phases/{{ p.idPhaseCampagne }}/extend" style="display:inline-flex; align-items:center; gap:.25rem; margin-left:.5rem" onsubmit="return confirm('Prolonger la date limite de cette phase ?');">

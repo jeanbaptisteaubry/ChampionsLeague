@@ -11,6 +11,8 @@ final class PointCalculator
      * - scoreExact compares only the exact score.
      * - qualifieSiN compares the final qualified team on every match.
      *   The third value is used only when the score is a draw.
+     * - finalistesChampion gives points for each finalist found, and double
+     *   points when the champion is also correct.
      */
     public static function earned(array $betVals, array $resultVals, array $calculations): int
     {
@@ -39,6 +41,8 @@ final class PointCalculator
                 if ($betQualifier !== null && $resultQualifier !== null && $betQualifier === $resultQualifier) {
                     $earned += $points;
                 }
+            } elseif ($lib === 'finalistesChampion') {
+                $earned += self::finalistsChampionPoints($betVals, $resultVals, $points);
             }
         }
 
@@ -83,5 +87,45 @@ final class PointCalculator
             return 2;
         }
         return null;
+    }
+
+    private static function finalistsChampionPoints(array $betVals, array $resultVals, int $points): int
+    {
+        $betFinalists = self::normalizedTeams([$betVals[1] ?? null, $betVals[2] ?? null]);
+        $resultFinalists = self::normalizedTeams([$resultVals[1] ?? null, $resultVals[2] ?? null]);
+        $earned = 0;
+
+        foreach ($betFinalists as $team) {
+            if (in_array($team, $resultFinalists, true)) {
+                $earned += $points;
+            }
+        }
+
+        $betChampion = self::normalizedTeam($betVals[3] ?? null);
+        $resultChampion = self::normalizedTeam($resultVals[3] ?? null);
+        if ($betChampion !== null && $resultChampion !== null && $betChampion === $resultChampion) {
+            $earned += $points * 2;
+        }
+
+        return $earned;
+    }
+
+    private static function normalizedTeams(array $values): array
+    {
+        $teams = [];
+        foreach ($values as $value) {
+            $team = self::normalizedTeam($value);
+            if ($team !== null && !in_array($team, $teams, true)) {
+                $teams[] = $team;
+            }
+        }
+
+        return $teams;
+    }
+
+    private static function normalizedTeam(mixed $value): ?string
+    {
+        $team = trim(mb_strtolower((string)$value));
+        return $team !== '' ? $team : null;
     }
 }

@@ -159,11 +159,15 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel, $adminRemind
     // Campagnes
     $group->get('/campagnes', [$admin, 'listCampagnes']);
     $group->post('/campagnes', [$admin, 'createCampagne']);
+    $group->post('/campagnes/{idCampagne}/delete', [$admin, 'deleteCampagne']);
     $group->post('/campagnes/{idCampagne}/gain', [$admin, 'setCampagneGain']);
     $group->get('/campagnes/{idCampagne}/invitations', [$admin, 'campagneInvites']);
     $group->post('/campagnes/{idCampagne}/invitations', [$admin, 'inviteParieursToCampagne']);
     // Fallback GET -> redirect to listing to avoid 405 if user clicks URL
     $group->get('/campagnes/{idCampagne}/gain', function ($request, $response) {
+        return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+    });
+    $group->get('/campagnes/{idCampagne}/delete', function ($request, $response) {
         return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
     });
     // Types de phase

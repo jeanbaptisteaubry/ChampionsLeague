@@ -191,6 +191,7 @@ final class AdminController
             'title' => 'Campagnes',
             'campagnes' => $campagnes,
             'inscCounts' => $this->computeInscriptionCounts($campagnes),
+            'betCounts' => $this->computeBetCounts($campagnes),
             'ok' => $_SESSION['flash_ok'] ?? null,
             'error' => $_SESSION['flash_error'] ?? null,
         ]);
@@ -237,6 +238,32 @@ final class AdminController
         }
         $this->campagnes->setGain($idCampagne, $gainText);
         $_SESSION['flash_ok'] = 'Gain mis Ã  jour';
+        return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+    }
+
+    public function deleteCampagne(Request $request, Response $response, array $args): Response
+    {
+        $data = (array)($request->getParsedBody() ?? []);
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $idCampagne = (int)($args['idCampagne'] ?? 0);
+        $campagne = $idCampagne > 0 ? $this->campagnes->findById($idCampagne) : null;
+        if (!$campagne) {
+            $_SESSION['flash_error'] = 'Campagne introuvable';
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $betCount = $this->paris->countByCampagne($idCampagne);
+        if ($betCount > 0) {
+            $_SESSION['flash_error'] = "Impossible de supprimer cette campagne : $betCount pari(s) enregistre(s).";
+            return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
+        }
+
+        $this->campagnes->delete($idCampagne);
+        $_SESSION['flash_ok'] = 'Campagne supprimee';
         return $response->withHeader('Location', '/admin/campagnes')->withStatus(302);
     }
 
@@ -352,6 +379,15 @@ final class AdminController
         return $counts;
     }
 
+    private function computeBetCounts(array $campagnes): array
+    {
+        $counts = [];
+        foreach ($campagnes as $c) {
+            $counts[(int)$c['idCampagnePari']] = $this->paris->countByCampagne((int)$c['idCampagnePari']);
+        }
+        return $counts;
+    }
+
     // Types de phase
     public function listTypes(Request $request, Response $response): Response
     {
@@ -417,6 +453,7 @@ final class AdminController
         $types = $this->typePhase->findAll();
         $campagne = $this->campagnes->findById($idCampagne);
         $apCounts = [];
+        $phaseBetCounts = [];
         $betStatuses = [];
         $pointStatuses = [];
         foreach ($phases as $p) {
@@ -435,6 +472,7 @@ final class AdminController
             }
 
             $apCounts[$idPhase] = $itemCount;
+            $phaseBetCounts[$idPhase] = $this->paris->countByPhase($idPhase);
             $betStatuses[$idPhase] = [
                 'participants' => $participants,
                 'counts' => $counts,
@@ -484,6 +522,7 @@ final class AdminController
             'phases' => $phases,
             'types' => $types,
             'apCounts' => $apCounts,
+            'phaseBetCounts' => $phaseBetCounts,
             'betStatuses' => $betStatuses,
             'pointStatuses' => $pointStatuses,
             'ok' => $_SESSION['flash_ok'] ?? null,
@@ -707,9 +746,10 @@ final class AdminController
         $ph = $this->phases->findById($idPhase);
         if (!$ph) { $_SESSION['flash_error'] = 'Phase introuvable'; return $response->withHeader('Location', '/admin/campagnes')->withStatus(302); }
         $idCampagne = (int)$ph['idCampagnePari'];
-        $count = $this->aParier->countByPhase($idPhase);
-        if ($count > 0) {
-            $_SESSION['flash_error'] = 'Impossible de supprimer: des Ã©lÃ©ments Ã  parier existent';
+        $betCount = $this->paris->countByPhase($idPhase);
+        if ($betCount > 0) {
+            $_SESSION['flash_error'] = "Impossible de supprimer cette phase : $betCount pari(s) enregistre(s).";
+            return $response->withHeader('Location', "/admin/campagnes/$idCampagne/phases")->withStatus(302);
         } else {
             $this->phases->delete($idPhase);
             $_SESSION['flash_ok'] = 'Phase supprimÃ©e';

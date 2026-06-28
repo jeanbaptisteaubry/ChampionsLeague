@@ -10,7 +10,7 @@ function seed_default(PDO $pdo): void {
 
     // Seed TypeResultat
     $stmt = $pdo->prepare('INSERT INTO `TypeResultat` (`libelle`) VALUES (:l) ON DUPLICATE KEY UPDATE `libelle`=VALUES(`libelle`)');
-    foreach (['1N2','scoreExact','qualifieSiN'] as $lib) {
+    foreach (['1N2','scoreExact','qualifieSiN','finalistesChampion'] as $lib) {
         $stmt->execute([':l'=>$lib]);
     }
 
@@ -84,4 +84,3 @@ if (php_sapi_name() === 'cli' && basename(__FILE__) === basename($_SERVER['argv'
     $pdo = Singleton_ConnexionPDO::getInstance();
     seed_default($pdo);
 }
-

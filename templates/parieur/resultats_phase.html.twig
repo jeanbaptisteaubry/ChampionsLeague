@@ -25,8 +25,14 @@
       <tr>
         <td>{{ it.libellePari }}</td>
         {% set o = official[it.idAParier] ?? {} %}
-        {% set hasOff = (o[1] is defined or o[2] is defined) %}
-        <td style="text-align:center;color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} &mdash; {% endif %}{{ o[2]|default('') }}</td>
+        {% set officialValues = [] %}
+        {% for i in 1..nb %}
+          {% if o[i] is defined and o[i] != '' %}
+            {% set officialValues = officialValues|merge([(labels[i] ?? ('Valeur ' ~ i)) ~ ': ' ~ o[i]]) %}
+          {% endif %}
+        {% endfor %}
+        {% set hasOff = officialValues|length > 0 %}
+        <td style="text-align:center;color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ officialValues|join(' | ') }}</td>
         {% for u in participants %}
           {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
           {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}

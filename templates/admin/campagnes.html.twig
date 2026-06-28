@@ -23,6 +23,15 @@
         — <a href="/admin/campagnes/{{ c.idCampagnePari }}/phases">Gérer phases</a>
         — <a href="/admin/campagnes/{{ c.idCampagnePari }}/invitations">Inviter des parieurs</a>
         {% set count = (inscCounts[c.idCampagnePari] ?? 0) %}
+        {% set betCount = (betCounts[c.idCampagnePari] ?? 0) %}
+        {% if betCount == 0 %}
+          <form method="post" action="/admin/campagnes/{{ c.idCampagnePari }}/delete" style="display:inline" onsubmit="return confirm('Supprimer cette campagne ? Les phases, elements a parier, resultats et inscriptions associes seront supprimes.');">
+            <input type="hidden" name="_csrf" value="{{ app.csrf }}">
+            <button>Supprimer</button>
+          </form>
+        {% else %}
+          <em style="color:#888">({{ betCount }} pari(s) enregistr&eacute;(s) &mdash; suppression verrouill&eacute;e)</em>
+        {% endif %}
         {% if count == 0 %}
           <form method="post" action="/admin/campagnes/{{ c.idCampagnePari }}/gain" style="display:block; margin:.25rem 0 .75rem 0;">
             <input type="hidden" name="_csrf" value="{{ app.csrf }}">
