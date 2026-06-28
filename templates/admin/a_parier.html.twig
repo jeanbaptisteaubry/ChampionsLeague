@@ -69,13 +69,37 @@
   {% endif %}
   <script>
     (function () {
-      function syncQualifier(itemId) {
-        var qualifierNode = document.querySelector('[data-qualifier-for="' + itemId + '"]');
-        var row = qualifierNode ? qualifierNode.closest('tr') : null;
-        if (!row) { return; }
-        var home = row.querySelector('[data-score-item="' + itemId + '"][data-score-number="1"]');
-        var away = row.querySelector('[data-score-item="' + itemId + '"][data-score-number="2"]');
-        var qualifier = row.querySelector('[data-qualifier-for="' + itemId + '"]');
+      function setAutoValue(row, qualifier, value) {
+        var itemId = qualifier.getAttribute('data-qualifier-for');
+        var hidden = row.querySelector('input[type="hidden"][data-qualifier-hidden-for="' + itemId + '"]');
+        qualifier.value = value;
+        qualifier.disabled = true;
+        qualifier.style.backgroundColor = '#eee';
+        if (!hidden) {
+          hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = qualifier.name;
+          hidden.setAttribute('data-qualifier-hidden-for', itemId);
+          qualifier.parentNode.appendChild(hidden);
+        }
+        hidden.value = value;
+      }
+
+      function clearAutoValue(row, qualifier, clearValue) {
+        var itemId = qualifier.getAttribute('data-qualifier-for');
+        var hidden = row.querySelector('input[type="hidden"][data-qualifier-hidden-for="' + itemId + '"]');
+        if (hidden) { hidden.remove(); }
+        if (qualifier.getAttribute('data-original-disabled') !== '1') {
+          qualifier.disabled = false;
+        }
+        qualifier.style.backgroundColor = '';
+        if (clearValue) { qualifier.value = ''; }
+      }
+
+      function syncQualifier(row) {
+        var home = row.querySelector('[data-score-number="1"]');
+        var away = row.querySelector('[data-score-number="2"]');
+        var qualifier = row.querySelector('[data-qualifier-for]');
         if (!home || !away || !qualifier) { return; }
 
         var homeValue = home.value.trim();
@@ -85,22 +109,21 @@
         var hasScores = homeValue !== '' && awayValue !== '' && !isNaN(homeScore) && !isNaN(awayScore);
 
         if (!hasScores || homeScore === awayScore) {
-          qualifier.dataset.autoLocked = '0';
-          qualifier.style.pointerEvents = '';
-          qualifier.style.backgroundColor = '';
-          if (!hasScores) { qualifier.value = ''; }
+          clearAutoValue(row, qualifier, !hasScores);
           return;
         }
 
-        qualifier.value = homeScore > awayScore ? '1' : '2';
-        qualifier.dataset.autoLocked = '1';
-        qualifier.style.pointerEvents = 'none';
-        qualifier.style.backgroundColor = '#eee';
+        setAutoValue(row, qualifier, homeScore > awayScore ? '1' : '2');
       }
 
-      document.querySelectorAll('[data-score-item]').forEach(function (input) {
-        input.addEventListener('input', function () { syncQualifier(input.dataset.scoreItem); });
-        syncQualifier(input.dataset.scoreItem);
+      document.querySelectorAll('[data-qualifier-for]').forEach(function (qualifier) {
+        qualifier.setAttribute('data-original-disabled', qualifier.disabled ? '1' : '0');
+        var row = qualifier.closest('tr');
+        if (!row) { return; }
+        row.querySelectorAll('[data-score-number="1"], [data-score-number="2"]').forEach(function (input) {
+          input.addEventListener('input', function () { syncQualifier(row); });
+        });
+        syncQualifier(row);
       });
     })();
   </script>
