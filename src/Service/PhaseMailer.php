@@ -45,8 +45,13 @@ final class PhaseMailer
         $items = $aParier->findByPhase($idPhase);
         $type = $typePhase->findById((int)$phase['idTypePhase']);
         $nbValues = max(1, (int)($type['nbValeurParPari'] ?? 2));
+        $labels = [];
+        foreach ($typePhase->labels((int)$phase['idTypePhase']) as $label) {
+            $labels[(int)$label['numeroValeur']] = $label['libelle'];
+        }
 
         $cells = [];
+        $htmlCells = [];
         $betsByItemAndUser = [];
         foreach ($participants as $user) {
             $uid = (int)$user['idUtilisateur'];
@@ -65,17 +70,20 @@ final class PhaseMailer
                         $ordered[] = (string)$values[$i];
                     }
                 }
-                $cells[$idA][$uid] = implode(' | ', $ordered);
+                $cells[$idA][$uid] = BetDisplayFormatter::plain($values, $labels, (string)$item['libellePari']);
+                $htmlCells[$idA][$uid] = BetDisplayFormatter::html($values, $labels, (string)$item['libellePari']);
             }
         }
 
         $official = [];
+        $officialHtml = [];
         foreach ($items as $item) {
             $idA = (int)$item['idAParier'];
             $official[$idA] = [];
             foreach ($reponses->findByAParier($idA) as $response) {
                 $official[$idA][(int)$response['numeroValeur']] = $response['valeurResultat'];
             }
+            $officialHtml[$idA] = BetDisplayFormatter::html($official[$idA], $labels, (string)$item['libellePari']);
         }
 
         $calc = $phaseCalc->listByPhase($idPhase);
@@ -101,9 +109,13 @@ final class PhaseMailer
             'participants' => $participants,
             'items' => $items,
             'cells' => $cells,
+            'htmlCells' => $htmlCells,
             'official' => $official,
+            'officialHtml' => $officialHtml,
             'points' => $points,
             'totals' => $totals,
+            'labels' => $labels,
+            'nb' => $nbValues,
         ];
     }
 

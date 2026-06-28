@@ -1,16 +1,16 @@
 <div style="font-family:Arial,Helvetica,sans-serif; font-size:14px; color:#222">
   <p>Bonjour {{ recipient|default('') }},</p>
   <p>
-    Tous les paris sont désormais <strong>verrouillés</strong> pour la phase
-    « {{ phase.libelle }} »{% if campagne.libelle is defined and campagne.libelle %} de la campagne « {{ campagne.libelle }} »{% endif %}.
+    Tous les paris sont desormais <strong>verrouilles</strong> pour la phase
+    &laquo; {{ phase.libelle }} &raquo;{% if campagne.libelle is defined and campagne.libelle %} de la campagne &laquo; {{ campagne.libelle }} &raquo;{% endif %}.
   </p>
-  <p>Voici le récapitulatif :</p>
+  <p>Voici le recapitulatif :</p>
 
   <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; width:100%; max-width:1000px">
     <thead>
       <tr>
-        <th style="text-align:left">À parier</th>
-        <th style="text-align:center">Résultat officiel</th>
+        <th style="text-align:left">A parier</th>
+        <th style="text-align:center">Resultat officiel</th>
         {% for u in participants %}
           <th style="text-align:center">{{ u.pseudo }}</th>
         {% endfor %}
@@ -21,11 +21,12 @@
     {% for it in items %}
       <tr>
         <td>{{ it.libellePari }}</td>
-        {% set o = official[it.idAParier] ?? {} %}
-        {% set hasOff = (o[1] is defined or o[2] is defined) %}
-        <td style="text-align:center; color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ o[1]|default('') }}{% if hasOff %} — {% endif %}{{ o[2]|default('') }}</td>
+        {% set officialDisplay = officialHtml[it.idAParier] ?? '' %}
+        {% set hasOff = officialDisplay != '' %}
+        <td style="text-align:center; color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ officialDisplay|raw }}</td>
         {% for u in participants %}
           {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
+          {% set betDisplay = (htmlCells[it.idAParier][u.idUtilisateur] ?? bet) %}
           {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}
           {% set style = '' %}
           {% if bet %}
@@ -37,12 +38,12 @@
               {% set style = 'background:#ffecec' %}
             {% endif %}
           {% endif %}
-          <td style="text-align:center; {{ style }}">{{ bet }}{% if bet %}<br><strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
+          <td style="text-align:center; {{ style }}">{{ betDisplay|raw }}{% if bet %}<br><strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
         {% endfor %}
         <td></td>
       </tr>
     {% else %}
-      <tr><td colspan="{{ 3 + participants|length }}">Aucun élément à parier</td></tr>
+      <tr><td colspan="{{ 3 + participants|length }}">Aucun element a parier</td></tr>
     {% endfor %}
     </tbody>
     <tfoot>
@@ -57,9 +58,8 @@
   </table>
 
   <p style="margin-top:12px">
-    Vous pouvez aussi consulter ce récapitulatif en ligne :
+    Vous pouvez aussi consulter ce recapitulatif en ligne :
     <a href="{{ resultLink }}">{{ resultLink }}</a>
   </p>
-  <p>Bonne chance à tous !</p>
+  <p>Bonne chance a tous !</p>
 </div>
-

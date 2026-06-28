@@ -17,6 +17,7 @@ use App\Modele\PhaseParieurVerrouModele;
 use App\Modele\ParametreModele;
 use App\Service\PhaseMailer;
 use App\Service\PointCalculator;
+use App\Service\BetDisplayFormatter;
 
 final class ParieurController
 {
@@ -466,6 +467,8 @@ final class ParieurController
 
         // PrÃ©parer cellule [idAParier][idUtilisateur] => "val1 | val2 | ..." et points
         $cells = [];
+        $htmlCells = [];
+        $officialHtml = [];
         $points = [];
         $totals = [];
 
@@ -477,6 +480,7 @@ final class ParieurController
             $rvals = [];
             foreach ($res as $r) { $rvals[(int)$r['numeroValeur']] = $r['valeurResultat']; }
             $official[$rid] = $rvals;
+            $officialHtml[$rid] = BetDisplayFormatter::html($rvals, $labels, (string)$it['libellePari']);
         }
 
         // Config points
@@ -489,12 +493,16 @@ final class ParieurController
                 $vals = $b['valeurs'] ?? [];
                 $ordered = [];
                 for ($i=1; $i<=$nb; $i++) { if (isset($vals[$i])) { $ordered[] = (string)$vals[$i]; } }
-                $byItem[(int)$b['idAParier']] = [ 'text' => implode(' | ', $ordered), 'vals' => $vals ];
+                $byItem[(int)$b['idAParier']] = [
+                    'text' => implode(' | ', $ordered),
+                    'vals' => $vals,
+                ];
             }
             foreach ($items as $it) {
                 $idA = (int)$it['idAParier'];
-                $cells[$idA][$uid] = $byItem[$idA]['text'] ?? '';
                 $betVals = $byItem[$idA]['vals'] ?? [];
+                $cells[$idA][$uid] = BetDisplayFormatter::plain($betVals, $labels, (string)$it['libellePari']);
+                $htmlCells[$idA][$uid] = BetDisplayFormatter::html($betVals, $labels, (string)$it['libellePari']);
                 $resVals = $official[$idA] ?? [];
                 $earned = PointCalculator::earned($betVals, $resVals, $calc);
                 $points[$idA][$uid] = $earned;
@@ -509,7 +517,9 @@ final class ParieurController
             'participants' => $participants,
             'items' => $items,
             'cells' => $cells,
+            'htmlCells' => $htmlCells,
             'official' => $official,
+            'officialHtml' => $officialHtml,
             'points' => $points,
             'totals' => $totals,
             'nb' => $nb,
@@ -561,19 +571,14 @@ final class ParieurController
 
         // CSV header
         $rows = [];
-        $header = ['AParier'];
-        for ($i = 1; $i <= $nb; $i++) {
-            $header[] = 'Resultat ' . ($labels[$i] ?? $i);
-        }
+        $header = ['AParier', 'Resultat officiel'];
         foreach ($participants as $u) { $header[] = $u['pseudo']; }
         $rows[] = $header;
 
         foreach ($items as $it) {
             $idA = (int)$it['idAParier'];
             $row = [$it['libellePari']];
-            for ($i = 1; $i <= $nb; $i++) {
-                $row[] = (string)($official[$idA][$i] ?? '');
-            }
+            $row[] = BetDisplayFormatter::plain($official[$idA] ?? [], $labels, (string)$it['libellePari']);
             foreach ($participants as $u) {
                 $uid = (int)$u['idUtilisateur'];
                 $bets = $this->paris->findForUserAndPhase($uid, $idPhase);
@@ -585,7 +590,8 @@ final class ParieurController
 
                 $earned = PointCalculator::earned($vals, $official[$idA] ?? [], $calc);
 
-                $row[] = implode(' | ', $ordered) . ($ordered ? " (".$earned."pt)" : '');
+                $text = BetDisplayFormatter::plain($vals, $labels, (string)$it['libellePari']);
+                $row[] = $text . ($text !== '' ? " (".$earned."pt)" : '');
             }
             $rows[] = $row;
         }

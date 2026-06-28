@@ -156,18 +156,19 @@
                   <tbody>
                     {% for item in pointStatus.items %}
                       {% set official = pointStatus.official[item.idAParier] ?? {} %}
+                      {% set officialDisplay = pointStatus.officialHtml[item.idAParier] ?? '' %}
                       <tr>
                         <td>{{ item.libellePari }}</td>
                         <td style="text-align:center">
-                          {{ official[1]|default('') }}
-                          {% if official[1] is defined or official[2] is defined %}&mdash;{% endif %}
-                          {{ official[2]|default('') }}
+                          {{ officialDisplay|raw }}
                         </td>
                         {% for participant in pointStatus.participants %}
                           {% set bet = pointStatus.cells[item.idAParier][participant.idUtilisateur] ?? '' %}
+                          {% set betDisplay = pointStatus.htmlCells[item.idAParier][participant.idUtilisateur] ?? bet %}
                           {% set earned = pointStatus.points[item.idAParier][participant.idUtilisateur] ?? 0 %}
                           <td style="text-align:center">
                             {% if bet %}
+                              {{ betDisplay|raw }}<br>
                               <strong>{{ earned }} pt{% if earned != 1 %}s{% endif %}</strong>
                             {% else %}
                               -

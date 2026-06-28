@@ -24,17 +24,12 @@
     {% for it in items %}
       <tr>
         <td>{{ it.libellePari }}</td>
-        {% set o = official[it.idAParier] ?? {} %}
-        {% set officialValues = [] %}
-        {% for i in 1..nb %}
-          {% if o[i] is defined and o[i] != '' %}
-            {% set officialValues = officialValues|merge([(labels[i] ?? ('Valeur ' ~ i)) ~ ': ' ~ o[i]]) %}
-          {% endif %}
-        {% endfor %}
-        {% set hasOff = officialValues|length > 0 %}
-        <td style="text-align:center;color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ officialValues|join(' | ') }}</td>
+        {% set officialDisplay = officialHtml[it.idAParier] ?? '' %}
+        {% set hasOff = officialDisplay != '' %}
+        <td style="text-align:center;color:{% if hasOff %}#060{% else %}#999{% endif %}; font-weight:{% if hasOff %}bold{% else %}normal{% endif %}">{{ officialDisplay|raw }}</td>
         {% for u in participants %}
           {% set bet = (cells[it.idAParier][u.idUtilisateur] ?? '') %}
+          {% set betDisplay = (htmlCells[it.idAParier][u.idUtilisateur] ?? bet) %}
           {% set pts = (points[it.idAParier][u.idUtilisateur] ?? 0) %}
           {% set style = '' %}
           {% if bet %}
@@ -50,7 +45,7 @@
               {% set style = 'background:#ffecec' %}
             {% endif %}
           {% endif %}
-          <td style="text-align:center;{{ style }}">{{ bet }}{% if bet %}<br><strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
+          <td style="text-align:center;{{ style }}">{{ betDisplay|raw }}{% if bet %}<br><strong>{{ pts }} pt{% if pts>1 %}s{% endif %}</strong>{% endif %}</td>
         {% endfor %}
         <td></td>
       </tr>
