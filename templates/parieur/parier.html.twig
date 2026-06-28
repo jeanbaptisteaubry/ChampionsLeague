@@ -38,13 +38,13 @@
                 {% set val = (existing[it.idAParier][i] ?? '') %}
                 <td>
                   {% if 'qualifi' in (label|lower) %}
-                    <select name="paris[{{ it.idAParier }}][{{ i }}]" {% if closed or locked %}disabled{% endif %}>
+                    <select name="paris[{{ it.idAParier }}][{{ i }}]" data-qualifier-for="{{ it.idAParier }}" {% if closed or locked %}disabled{% endif %}>
                       <option value="">-</option>
                       <option value="1" {% if val == '1' %}selected{% endif %}>Domicile</option>
                       <option value="2" {% if val == '2' %}selected{% endif %}>Ext&eacute;rieur</option>
                     </select>
                   {% else %}
-                    <input name="paris[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}" {% if closed or locked %}disabled{% endif %}>
+                    <input name="paris[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}" data-score-item="{{ it.idAParier }}" data-score-number="{{ i }}" {% if closed or locked %}disabled{% endif %}>
                   {% endif %}
                 </td>
               {% endfor %}
@@ -65,4 +65,42 @@
       <p class="flash-ok" style="margin-top:.5rem">Vous avez verrouill&eacute; vos paris. Vous pouvez consulter ceux des autres.</p>
     {% endif %}
   {% endif %}
+  <script>
+    (function () {
+      function syncQualifier(itemId) {
+        var qualifierNode = document.querySelector('[data-qualifier-for="' + itemId + '"]');
+        var row = qualifierNode ? qualifierNode.closest('tr') : null;
+        if (!row) { return; }
+        var home = row.querySelector('[data-score-item="' + itemId + '"][data-score-number="1"]');
+        var away = row.querySelector('[data-score-item="' + itemId + '"][data-score-number="2"]');
+        var qualifier = row.querySelector('[data-qualifier-for="' + itemId + '"]');
+        if (!home || !away || !qualifier) { return; }
+        if (home.disabled || away.disabled) { return; }
+
+        var homeValue = home.value.trim();
+        var awayValue = away.value.trim();
+        var homeScore = parseInt(homeValue, 10);
+        var awayScore = parseInt(awayValue, 10);
+        var hasScores = homeValue !== '' && awayValue !== '' && !isNaN(homeScore) && !isNaN(awayScore);
+
+        if (!hasScores || homeScore === awayScore) {
+          qualifier.dataset.autoLocked = '0';
+          qualifier.style.pointerEvents = '';
+          qualifier.style.backgroundColor = '';
+          if (!hasScores) { qualifier.value = ''; }
+          return;
+        }
+
+        qualifier.value = homeScore > awayScore ? '1' : '2';
+        qualifier.dataset.autoLocked = '1';
+        qualifier.style.pointerEvents = 'none';
+        qualifier.style.backgroundColor = '#eee';
+      }
+
+      document.querySelectorAll('[data-score-item]').forEach(function (input) {
+        input.addEventListener('input', function () { syncQualifier(input.dataset.scoreItem); });
+        syncQualifier(input.dataset.scoreItem);
+      });
+    })();
+  </script>
 {% endblock %}

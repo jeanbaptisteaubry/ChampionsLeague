@@ -5,6 +5,13 @@ namespace App\Service;
 
 final class PointCalculator
 {
+    /**
+     * Rules:
+     * - 1N2 compares only the score tendency.
+     * - scoreExact compares only the exact score.
+     * - qualifieSiN compares the final qualified team on every match.
+     *   The third value is used only when the score is a draw.
+     */
     public static function earned(array $betVals, array $resultVals, array $calculations): int
     {
         $earned = 0;

@@ -48,13 +48,13 @@
                 {% set val = (results[it.idAParier][i] ?? '') %}
                 <td>
                   {% if 'qualifi' in (label|lower) %}
-                    <select name="res[{{ it.idAParier }}][{{ i }}]">
+                    <select name="res[{{ it.idAParier }}][{{ i }}]" data-qualifier-for="{{ it.idAParier }}">
                       <option value="">-</option>
                       <option value="1" {% if val == '1' %}selected{% endif %}>Domicile</option>
                       <option value="2" {% if val == '2' %}selected{% endif %}>Ext&eacute;rieur</option>
                     </select>
                   {% else %}
-                    <input name="res[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}">
+                    <input name="res[{{ it.idAParier }}][{{ i }}]" value="{{ val }}" placeholder="{{ label }}" data-score-item="{{ it.idAParier }}" data-score-number="{{ i }}">
                   {% endif %}
                 </td>
               {% endfor %}
@@ -67,4 +67,41 @@
       </div>
     </form>
   {% endif %}
+  <script>
+    (function () {
+      function syncQualifier(itemId) {
+        var qualifierNode = document.querySelector('[data-qualifier-for="' + itemId + '"]');
+        var row = qualifierNode ? qualifierNode.closest('tr') : null;
+        if (!row) { return; }
+        var home = row.querySelector('[data-score-item="' + itemId + '"][data-score-number="1"]');
+        var away = row.querySelector('[data-score-item="' + itemId + '"][data-score-number="2"]');
+        var qualifier = row.querySelector('[data-qualifier-for="' + itemId + '"]');
+        if (!home || !away || !qualifier) { return; }
+
+        var homeValue = home.value.trim();
+        var awayValue = away.value.trim();
+        var homeScore = parseInt(homeValue, 10);
+        var awayScore = parseInt(awayValue, 10);
+        var hasScores = homeValue !== '' && awayValue !== '' && !isNaN(homeScore) && !isNaN(awayScore);
+
+        if (!hasScores || homeScore === awayScore) {
+          qualifier.dataset.autoLocked = '0';
+          qualifier.style.pointerEvents = '';
+          qualifier.style.backgroundColor = '';
+          if (!hasScores) { qualifier.value = ''; }
+          return;
+        }
+
+        qualifier.value = homeScore > awayScore ? '1' : '2';
+        qualifier.dataset.autoLocked = '1';
+        qualifier.style.pointerEvents = 'none';
+        qualifier.style.backgroundColor = '#eee';
+      }
+
+      document.querySelectorAll('[data-score-item]').forEach(function (input) {
+        input.addEventListener('input', function () { syncQualifier(input.dataset.scoreItem); });
+        syncQualifier(input.dataset.scoreItem);
+      });
+    })();
+  </script>
 {% endblock %}

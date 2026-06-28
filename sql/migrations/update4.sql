@@ -1,4 +1,5 @@
--- Nouveau type de phase pour les phases finales avec qualifie en cas de nul
+-- Nouveau type de phase pour les phases finales avec calcul du qualifie final.
+-- La 3e valeur sert uniquement quand le score est nul.
 INSERT INTO `TypeResultat` (`libelle`)
 SELECT 'qualifieSiN'
 WHERE NOT EXISTS (SELECT 1 FROM `TypeResultat` WHERE `libelle` = 'qualifieSiN');
