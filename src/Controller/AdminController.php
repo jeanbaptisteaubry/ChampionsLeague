@@ -612,6 +612,63 @@ final class AdminController
         return $response->withHeader('Location', $returnUrl)->withStatus(302);
     }
 
+    public function lockParticipantBets(Request $request, Response $response, array $args): Response
+    {
+        $idPhase = (int)($args['idPhase'] ?? 0);
+        $idUser = (int)($args['idUser'] ?? 0);
+        $phase = $idPhase > 0 ? $this->phases->findById($idPhase) : null;
+        $idCampagne = (int)($phase['idCampagnePari'] ?? 0);
+        $returnUrl = $idCampagne > 0
+            ? "/admin/campagnes/$idCampagne/phases"
+            : '/admin/campagnes';
+        $data = (array)($request->getParsedBody() ?? []);
+
+        if (!csrf_validate($data['_csrf'] ?? null)) {
+            $_SESSION['flash_error'] = 'Session expiree';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+        if (!$phase || $idUser <= 0 || !$this->inscriptions->estInscrit($idUser, $idCampagne)) {
+            $_SESSION['flash_error'] = 'Phase ou participant invalide';
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        [$itemCount, $missingValues] = $this->participantMissingBetValues($idUser, $idPhase, $phase);
+        if ($itemCount === 0 || $missingValues > 0) {
+            $_SESSION['flash_error'] = $itemCount === 0
+                ? 'Aucun element a parier n est configure pour cette phase'
+                : "Verrouillage impossible : $missingValues valeur(s) de pari sont manquante(s)";
+            return $response->withHeader('Location', $returnUrl)->withStatus(302);
+        }
+
+        (new PhaseParieurVerrouModele())->lock($idUser, $idPhase);
+        $_SESSION['flash_ok'] = 'Les paris du participant ont ete verrouilles et valides';
+
+        return $response->withHeader('Location', $returnUrl)->withStatus(302);
+    }
+
+    private function participantMissingBetValues(int $idUser, int $idPhase, array $phase): array
+    {
+        $items = $this->aParier->findByPhase($idPhase);
+        $type = $this->typePhase->findById((int)$phase['idTypePhase']);
+        $expectedPerItem = max(1, (int)($type['nbValeurParPari'] ?? 1));
+        $betsByItem = [];
+        foreach ($this->paris->findForUserAndPhase($idUser, $idPhase) as $bet) {
+            $betsByItem[(int)$bet['idAParier']] = $bet['valeurs'] ?? [];
+        }
+
+        $missingValues = 0;
+        foreach ($items as $item) {
+            $values = $betsByItem[(int)$item['idAParier']] ?? [];
+            for ($number = 1; $number <= $expectedPerItem; $number++) {
+                if (!isset($values[$number]) || trim((string)$values[$number]) === '') {
+                    $missingValues++;
+                }
+            }
+        }
+
+        return [count($items), $missingValues];
+    }
+
     public function extendPhaseDeadline(Request $request, Response $response, array $args): Response
     {
         $idPhase = (int)($args['idPhase'] ?? 0);

@@ -123,7 +123,10 @@ $restrictAssistance = function (Request $request, RequestHandler $handler) use (
 
     $path = $request->getUri()->getPath();
     $idPhase = (int)($_SESSION['impersonator']['phaseId'] ?? 0);
-    if ($idPhase > 0 && $path === "/parieur/phases/$idPhase/parier") {
+    if ($idPhase > 0 && in_array($path, [
+        "/parieur/phases/$idPhase/parier",
+        "/parieur/phases/$idPhase/verrouiller",
+    ], true)) {
         return $handler->handle($request);
     }
 
@@ -181,6 +184,7 @@ $app->group('/admin', function ($group) use ($admin, $aParierModel, $adminRemind
     $group->get('/campagnes/{idCampagne}/phases', [$admin, 'listPhases']);
     $group->post('/campagnes/{idCampagne}/phases', [$admin, 'createPhase']);
     $group->post('/phases/{idPhase}/assistance/{idUser}', [$admin, 'startBetAssistance']);
+    $group->post('/phases/{idPhase}/lock/{idUser}', [$admin, 'lockParticipantBets']);
     $group->post('/phases/{idPhase}/unlock/{idUser}', [$admin, 'unlockParticipantBets']);
     $group->post('/phases/{idPhase}/extend', [$admin, 'extendPhaseDeadline']);
     $group->post('/phases/{idPhase}/delete', [$admin, 'deletePhase']);
